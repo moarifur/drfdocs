@@ -1,0 +1,99 @@
+---
+title: Configuration
+description: Creating a Django project, setting up apps, and running the development server
+---
+
+# Installation
+
+## Create the Django Project
+
+Make sure your virtual environment is **activated** and you are inside your project folder, then run:
+
+```bash
+django-admin startproject watchmate
+```
+
+This creates the `watchmate/` project directory containing:
+- `settings.py` — project configuration
+- `urls.py` — main URL routing
+- `wsgi.py` / `asgi.py` — server entry points
+- `manage.py` — project management utility
+
+---
+
+## Navigate Into the Project
+
+```bash
+cd watchmate
+```
+
+All future commands are run from inside this directory.
+
+---
+
+## Open in VS Code
+
+```
+File → Open Folder → Select your watchmate folder
+```
+
+---
+
+## Create a Django App
+
+Django projects are divided into **apps**, each responsible for a specific feature. Create your first app:
+
+```bash
+python manage.py startapp watchlist_app
+```
+
+The `watchlist_app/` directory will contain:
+- `models.py`
+- `views.py`
+- `admin.py`
+- `tests.py`
+- `migrations/`
+
+> Use the `_app` suffix to distinguish app folders from the main project directory — especially since both may share similar names.
+
+---
+
+## Register the App
+
+Open `settings.py` and add your app to `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'watchlist_app',
+]
+```
+
+---
+
+## Run the Development Server
+
+```bash
+python manage.py runserver
+```
+
+Visit `http://127.0.0.1:8000/` in your browser. You should see the Django welcome page.
+
+---
+
+## Folder Structure Summary
+
+```
+watchmate/              ← Project root (cd into this)
+├── watchmate/          ← Config directory
+│   ├── settings.py
+│   ├── urls.py
+│   └── ...
+├── watchlist_app/      ← Your app
+│   ├── models.py
+│   ├── views.py
+│   └── ...
+└── manage.py
+```
+
+The virtual environment folder (`myvenv/`) lives **outside** this structure.

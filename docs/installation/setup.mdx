@@ -1,0 +1,95 @@
+---
+title: Setup
+description: Basic Django project setup including virtual environments and project structure
+---
+
+# Setup
+
+## Goal of This Section
+
+This section covers:
+1. A **Django refresher** to lay the foundation for the project
+2. How to **set up the project** — folder structure, code editor, and extensions
+3. How to **send JSON responses** from Django without using DRF (to understand why DRF is needed)
+
+---
+
+## Virtual Environment
+
+A virtual environment is an **isolated Python environment** for a specific project. It allows different projects to use different package versions without conflicts.
+
+### Create a Virtual Environment
+
+```bash
+python -m venv myvenv
+```
+
+### Activate It
+
+**Windows:**
+```bash
+myvenv\Scripts\activate
+```
+
+**Linux / Mac:**
+```bash
+source myvenv/bin/activate
+```
+
+### Verify It Is Empty
+
+```bash
+pip freeze
+```
+
+A fresh virtual environment will show no packages.
+
+---
+
+## Installing Django
+
+Visit [djangoproject.com](https://www.djangoproject.com) and check the latest stable (LTS) version, then install:
+
+```bash
+pip install django
+```
+
+Verify installed packages:
+
+```bash
+pip freeze
+```
+
+You should now see Django and its dependencies listed.
+
+---
+
+## Code Editor
+
+It is recommended to use **Visual Studio Code**. Install the following extensions:
+
+- **Python** — for IntelliSense, linting, and Django support
+- **Tabnine** — for AI-powered autocomplete (useful once you have some Django experience)
+
+After installing extensions, reload VS Code to activate them.
+
+---
+
+## Project Folder Structure
+
+The recommended structure keeps the virtual environment **outside** the Django project folder:
+
+```
+TRF_Project/
+├── myvenv/           ← Virtual environment (do NOT mix with project)
+└── watchmate/        ← Django project root
+    ├── watchmate/    ← Main config directory (settings.py, urls.py)
+    ├── watchlist_app/← Your first Django app
+    └── manage.py
+```
+
+---
+
+## Next Steps
+
+In the next lecture, you will create Django models, configure migrations, and begin building views and URL routes.

@@ -1,0 +1,78 @@
+---
+title: REST
+description: Understanding REST API architecture, methods, headers, and data formats
+---
+
+# REST
+
+## What is REST?
+
+**REST** (Representational State Transfer) is an **architectural style** for designing APIs. It defines a set of rules and conventions for how endpoints, methods, headers, and data should be structured.
+
+If an API is designed following the REST architecture, it is called a **RESTful API**.
+
+## Key Components
+
+### 1. Endpoints
+
+REST APIs follow a consistent URL pattern. There are two primary types:
+
+```
+GET  /movies/        → Returns the complete list of movies
+GET  /movies/127/    → Returns the individual movie with ID 127
+```
+
+APIs are often hosted at a dedicated subdomain or path:
+- `api.movies.com/movies/`
+- `movies.com/api/movies/`
+
+### 2. HTTP Methods (CRUD)
+
+REST maps database operations to HTTP methods:
+
+| Operation | HTTP Method | Example |
+|-----------|-------------|---------|
+| **Create** | `POST` | Add a new movie |
+| **Read** | `GET` | Retrieve a movie or list |
+| **Update** | `PUT` / `PATCH` | Edit an existing movie |
+| **Delete** | `DELETE` | Remove a movie |
+
+#### Which methods apply where?
+
+| URL Pattern | Allowed Methods |
+|-------------|-----------------|
+| `/movies/` | `GET` (list all), `POST` (add new) |
+| `/movies/127/` | `GET` (detail), `PUT` (update), `DELETE` (remove) |
+
+> You do not delete an entire list, and you do not update something that does not exist yet — so methods are constrained by the URL type.
+
+### 3. Headers and Status Codes
+
+Every API response includes a **status code** in its header to indicate the outcome:
+
+| Code Range | Meaning |
+|------------|---------|
+| `2xx` | Success (e.g., `200 OK`, `201 Created`) |
+| `3xx` | Redirection |
+| `4xx` | Client error (e.g., `404 Not Found`) |
+| `5xx` | Server error |
+
+### 4. Data Format
+
+REST APIs use **JSON** for both requests and responses:
+
+```json
+{
+  "name": "Spider-Man",
+  "description": "A superhero film",
+  "active": true
+}
+```
+
+JSON ensures a common language between the backend and all clients — web, iOS, Android, or desktop.
+
+## Best Practices
+
+- Watch the complete section of a topic before implementing it
+- Watch all lectures on full screen for better visibility of code and diagrams
+- Check the resources section for source code and reference articles added alongside lectures
