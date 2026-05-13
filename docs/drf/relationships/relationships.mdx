@@ -1,0 +1,105 @@
+---
+title: Relationships
+description: Django model relationships — one-to-one, many-to-one, and many-to-many
+sidebar_position: 2
+---
+
+# Relationships
+
+## Overview
+
+Django supports three types of model relationships:
+
+| Type | Field | Example |
+|------|-------|---------|
+| One-to-One | `OneToOneField` | A restaurant has exactly one address |
+| Many-to-One | `ForeignKey` | A movie belongs to one platform; a platform has many movies |
+| Many-to-Many | `ManyToManyField` | An article can be in many publications; a publication has many articles |
+
+---
+
+## One-to-One
+
+One object is associated with exactly one other object and vice versa.
+
+```python
+class Place(models.Model):
+    name = models.CharField(max_length=50)
+
+class Restaurant(models.Model):
+    place = models.OneToOneField(Place, on_delete=models.CASCADE)
+```
+
+One location → one restaurant. One restaurant → one location.
+
+---
+
+## Many-to-One (ForeignKey)
+
+The most common relationship. One parent can have many children, but each child has only one parent.
+
+```python
+class WatchList(models.Model):
+    title    = models.CharField(max_length=50)
+    platform = models.ForeignKey(
+        StreamPlatform,
+        on_delete=models.CASCADE,
+        related_name='watchlist'
+    )
+```
+
+- Netflix can have many movies → Many-to-One
+- One movie belongs to only one platform
+
+`related_name='watchlist'` defines the reverse accessor. When you access a `StreamPlatform` object, you can call `platform.watchlist.all()` to get all associated movies.
+
+`on_delete=models.CASCADE` means: if the platform is deleted, all its movies are also deleted.
+
+---
+
+## Many-to-Many
+
+Both sides can have multiple associations.
+
+```python
+class Publication(models.Model):
+    title = models.CharField(max_length=30)
+
+class Article(models.Model):
+    headline     = models.CharField(max_length=100)
+    publications = models.ManyToManyField(Publication)
+```
+
+An article can appear in many publications. A publication can have many articles.
+
+---
+
+## Connecting WatchList to StreamPlatform
+
+After adding the `ForeignKey`:
+
+```python
+class WatchList(models.Model):
+    title     = models.CharField(max_length=50)
+    storyline = models.CharField(max_length=200)
+    active    = models.BooleanField(default=True)
+    created   = models.DateTimeField(auto_now_add=True)
+    platform  = models.ForeignKey(
+        StreamPlatform,
+        on_delete=models.CASCADE,
+        related_name='watchlist',
+        null=True
+    )
+
+    def __str__(self):
+        return self.title
+```
+
+Run migrations after adding the relationship:
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+Now in the admin panel, when adding a `WatchList` item, you can select which platform it belongs to.

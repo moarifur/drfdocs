@@ -1,0 +1,105 @@
+---
+title: ModelSerializer
+description: Using ModelSerializer to reduce boilerplate in DRF serializers
+sidebar_position: 6
+---
+
+# ModelSerializer
+
+## The Problem with Plain Serializer
+
+With `serializers.Serializer`, every field must be manually declared:
+
+```python
+class MovieSerializer(serializers.Serializer):
+    id          = serializers.IntegerField(read_only=True)
+    name        = serializers.CharField()
+    description = serializers.CharField()
+    active      = serializers.BooleanField()
+
+    def create(self, validated_data):
+        return Movie.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        ...
+        instance.save()
+        return instance
+```
+
+This becomes verbose as models grow.
+
+---
+
+## ModelSerializer
+
+`ModelSerializer` automatically generates fields from the model and provides default `create()` and `update()` implementations:
+
+```python
+from rest_framework import serializers
+from watchlist_app.models import Movie
+
+class MovieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Movie
+        fields = '__all__'
+```
+
+That is all that is required. DRF reads the model and generates serializer fields automatically.
+
+---
+
+## Controlling Fields
+
+### Include all fields
+
+```python
+fields = '__all__'
+```
+
+### Include specific fields only
+
+```python
+fields = ['id', 'name', 'description']
+```
+
+### Exclude specific fields
+
+```python
+exclude = ['active']
+```
+
+Use `fields` or `exclude`, never both at once.
+
+---
+
+## Adding Validations to ModelSerializer
+
+Validators must still be defined explicitly — they are not auto-generated:
+
+```python
+class MovieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Movie
+        fields = '__all__'
+
+    def validate_name(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError("Name is too short.")
+        return value
+
+    def validate(self, data):
+        if data['name'] == data['description']:
+            raise serializers.ValidationError("Title and description must differ.")
+        return data
+```
+
+---
+
+## What ModelSerializer Does Automatically
+
+- Generates all field declarations from the model
+- Provides `create(**validated_data)` implementation
+- Provides `update(instance, validated_data)` implementation
+- Sets `read_only=True` on the primary key (`id`) by default
+- Respects `blank=True`, `null=True`, and `default` from model fields

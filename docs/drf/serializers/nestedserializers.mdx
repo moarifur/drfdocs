@@ -1,0 +1,86 @@
+---
+title: Nested Serializers
+description: Creating nested serializer relationships to show related objects inline
+sidebar_position: 8
+---
+
+# NestedSerializers
+
+## Goal
+
+When viewing a `StreamPlatform`, we want to see all its movies inline:
+
+```json
+{
+  "id": 1,
+  "name": "Netflix",
+  "about": "Streaming service",
+  "website": "https://netflix.com",
+  "watchlist": [
+    {"id": 1, "title": "Spider-Man", "active": true},
+    {"id": 2, "title": "Avengers", "active": true}
+  ]
+}
+```
+
+This is a **nested serializer** — one serializer embedded inside another.
+
+---
+
+## How It Works
+
+The `ForeignKey` on `WatchList` pointing to `StreamPlatform` creates a reverse relationship. The `related_name='watchlist'` defined on the `ForeignKey` is the name used to access all movies from a platform.
+
+---
+
+## Implementing the Nested Serializer
+
+In `serializers.py`:
+
+```python
+class WatchListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = WatchList
+        fields = '__all__'
+
+class StreamPlatformSerializer(serializers.ModelSerializer):
+    watchlist = WatchListSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = StreamPlatform
+        fields = '__all__'
+```
+
+Key points:
+- `watchlist` matches the `related_name` defined on the `ForeignKey`.
+- `many=True` — a platform has multiple movies.
+- `read_only=True` — when creating a platform via POST, you don't submit the movie list. Movies are linked separately.
+
+---
+
+## Why `read_only=True`?
+
+When adding a new streaming platform (POST), you provide the platform's name, website, and about section. You don't add movies at the same time — movies are linked to the platform when the movie is created or updated.
+
+The `watchlist` field is only used for display (read), not for input.
+
+---
+
+## The `related_name` Is Critical
+
+If you try to use any name other than the exact `related_name` defined in the model's `ForeignKey`, the nested field will be empty or raise an error:
+
+```python
+# Model
+platform = models.ForeignKey(StreamPlatform, related_name='watchlist', ...)
+
+# Serializer — must match exactly
+watchlist = WatchListSerializer(many=True, read_only=True)  # ✓ correct
+movies    = WatchListSerializer(many=True, read_only=True)  # ✗ wrong name
+```
+
+---
+
+## Result
+
+After saving and refreshing the stream endpoint, each platform now shows all its associated movies inline. Adding a new movie to Netflix via the watchlist endpoint and refreshing the stream endpoint will update the nested list automatically.

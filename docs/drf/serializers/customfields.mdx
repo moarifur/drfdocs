@@ -1,0 +1,92 @@
+---
+title: CustomFields
+description: Adding computed custom fields to a serializer using SerializerMethodField
+sidebar_position: 7
+---
+
+# CustomFields
+
+## What Are Custom Serializer Fields?
+
+Sometimes you need to include a field in the API response that is not directly stored in the model. For example, calculating the character length of a field, computing a derived value, or combining two fields.
+
+DRF provides `SerializerMethodField` for this purpose.
+
+---
+
+## SerializerMethodField
+
+This field is **read-only** and calls a method to compute its value at serialization time.
+
+### Syntax
+
+```python
+field_name = serializers.SerializerMethodField()
+
+def get_field_name(self, obj):
+    # obj is the model instance
+    return <computed_value>
+```
+
+The method name must be `get_` followed by the field name exactly.
+
+---
+
+## Example: Length of Name Field
+
+Add a `len_name` field that returns the character count of the movie title:
+
+```python
+class MovieSerializer(serializers.ModelSerializer):
+    len_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Movie
+        fields = '__all__'
+
+    def get_len_name(self, obj):
+        return len(obj.name)
+```
+
+The response will include:
+
+```json
+{
+  "id": 1,
+  "name": "Spider-Man",
+  "description": "A superhero film",
+  "active": true,
+  "len_name": 10
+}
+```
+
+---
+
+## Practical Use Cases
+
+- Calculating duration between two timestamps
+- Combining `first_name` and `last_name` into a single `full_name` field
+- Returning a formatted or computed label
+- Accessing related object data without a nested serializer
+
+---
+
+## Example from DRF Documentation
+
+The canonical example computes `days_since_joined` for a user account:
+
+```python
+class AccountSerializer(serializers.Serializer):
+    days_since_joined = serializers.SerializerMethodField()
+
+    def get_days_since_joined(self, obj):
+        return (date.today() - obj.date_joined).days
+```
+
+---
+
+## Notes
+
+- `SerializerMethodField` is always read-only — it cannot accept input.
+- The `obj` parameter gives access to the full model instance, so you can traverse related models too.
+- The method must be defined on the same serializer class as the field.

@@ -1,0 +1,139 @@
+---
+title: Querying
+description: Creating JSON responses in Django to return all movie objects
+sidebar_position: 4
+---
+
+# Querying Objects
+---
+## Goal
+
+In this lecture you will learn how to:
+1. Query all objects from the database
+2. Convert the queryset to a Python dictionary
+3. Return the data as a **JSON response** using Django's built-in `JsonResponse`
+
+---
+
+## Import the Model
+
+Open `watchlist_app > views.py` and import the `Movie` model:
+
+```python
+from watchlist_app.models import Movie
+```
+
+---
+
+## Create the View Function
+
+```python
+from django.http import JsonResponse
+from watchlist_app.models import Movie
+
+def movie_list(request):
+    movies = Movie.objects.all()
+    movies_data = list(movies.values())
+    data = {"movies": movies_data}
+    return JsonResponse(data)
+```
+
+**Step-by-step breakdown:**
+
+| Step | Code | Purpose |
+|------|------|---------|
+| 1 | `Movie.objects.all()` | Fetch all movie records as a QuerySet |
+| 2 | `.values()` | Convert QuerySet to dictionaries |
+| 3 | `list(...)` | Convert to a Python list |
+| 4 | `{"movies": ...}` | Wrap in a dictionary (required by `JsonResponse`) |
+| 5 | `JsonResponse(data)` | Return as a proper JSON HTTP response |
+
+---
+
+## Configure URLs
+
+### Main `urls.py` (watchmate/urls.py)
+
+```python
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('movie/', include('watchlist_app.urls')),
+]
+```
+
+### App-level `urls.py` (watchlist_app/urls.py)
+
+Create this file inside your app folder:
+
+```python
+from django.urls import path
+from watchlist_app.views import movie_list
+
+urlpatterns = [
+    path('list/', movie_list, name='movie-list'),
+]
+```
+
+---
+
+## Test the Endpoint
+
+After restarting serve, visit: `http://127.0.0.1:8000/movie/list/`
+
+You should receive a JSON response like:
+
+```json
+{
+  "movies": [
+    {
+      "id": 1,
+      "name": "Python vs Java",
+      "description": "description one",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "JavaScript The Movie",
+      "description": "description two",
+      "active": true
+    }
+  ]
+}
+```
+
+---
+
+## JSON vs Python Dictionary
+
+| Feature | Python Dictionary | JSON |
+|---------|------------------|------|
+| Boolean | `True` / `False` (capital) | `true` / `false` (lowercase) |
+| Strings | Single or double quotes | Always double quotes |
+| Usage | In-memory Python | Data transfer format |
+
+`JsonResponse` automatically handles this conversion.
+
+---
+
+## Limitation of This Approach
+
+Manually converting querysets to dictionaries and then to JSON works, but it becomes unwieldy as complexity grows — especially when dealing with:
+- Nested data
+- Validation
+- Form input from clients
+- Multiple related models
+
+This is exactly why **Django REST Framework** and its **Serializers** are introduced in the next section.
+
+---
+
+## Summary
+
+```
+QuerySet  →  .values()  →  list()  →  dict  →  JsonResponse
+```
+
+The goal: **QuerySet → Python Dictionary → JSON Response**.

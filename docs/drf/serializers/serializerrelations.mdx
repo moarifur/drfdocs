@@ -1,0 +1,89 @@
+---
+title: Serializer Relations
+description: Controlling how related objects appear in API responses using DRF relation fields
+sidebar_position: 9
+---
+
+# SerializerRelations
+
+## Overview
+
+When a serializer has a relationship (like `watchlist` on `StreamPlatform`), you can control how that related data appears in the response. DRF provides several **relation field types**:
+
+| Field | Returns |
+|-------|---------|
+| Nested Serializer | Complete object(s) with all fields |
+| `StringRelatedField` | The `__str__` value of each related object |
+| `PrimaryKeyRelatedField` | The primary key (ID) of each related object |
+| `HyperlinkedRelatedField` | A URL link to each related object |
+| `HyperlinkedIdentityField` | A URL link to the current object itself |
+
+---
+
+## StringRelatedField
+
+Returns whatever `__str__` is defined on the related model:
+
+```python
+class StreamPlatformSerializer(serializers.ModelSerializer):
+    watchlist = serializers.StringRelatedField(many=True)
+
+    class Meta:
+        model  = StreamPlatform
+        fields = '__all__'
+```
+
+Response shows movie titles (assuming `__str__` returns `self.title`):
+
+```json
+{"watchlist": ["Spider-Man", "Avengers"]}
+```
+
+---
+
+## PrimaryKeyRelatedField
+
+Returns the primary key of each related object:
+
+```python
+watchlist = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+```
+
+```json
+{"watchlist": [1, 2, 3]}
+```
+
+---
+
+## HyperlinkedRelatedField
+
+Returns a URL to access each related object:
+
+```python
+watchlist = serializers.HyperlinkedRelatedField(
+    many=True,
+    read_only=True,
+    view_name='watchlist-detail'    # must match the URL name
+)
+```
+
+Requires the `request` to be passed as context when initializing the serializer:
+
+```python
+serializer = StreamPlatformSerializer(platforms, many=True, context={'request': request})
+```
+
+Response:
+
+```json
+{"watchlist": ["http://localhost:8000/watch/1/", "http://localhost:8000/watch/2/"]}
+```
+
+---
+
+## When to Use Each
+
+- **Nested Serializer** → When you want all details of related objects inline (most common)
+- **StringRelatedField** → When you only need a human-readable label
+- **PrimaryKeyRelatedField** → When you only need IDs (lightweight)
+- **HyperlinkedRelatedField** → When clients should follow links to get details

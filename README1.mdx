@@ -1,0 +1,231 @@
+---
+title: Django Installation
+description: A step-by-step guide to setting up Django with a virtual environment on Windows.
+---
+
+# Django Installation
+
+## What is a Virtual Environment?
+
+A **Virtual Environment** is an isolated workspace for your Python project.
+
+It keeps all packages and dependencies self-contained, so different projects can use different versions of the same library without conflicts.
+
+## Why You Should Always Use One
+
+- Keeps project dependencies isolated from each other
+- Avoids version conflicts between projects
+- Makes your project portable and professional
+- Easy to share requirements with teammates
+
+## Practical Example
+
+| Project   | Django Version |
+| ---------- | --------------- |
+| Project A | Django 5.x |
+| Project B | Django 6.x |
+
+> **Without virtual environments**, these two projects would conflict with each other.
+> With virtual environments, both live in separate isolated spaces — **no conflict!**
+
+> ⚠️ Follow each step carefully. **Do not skip any step.**
+
+---
+
+# Step-by-Step Setup
+
+## 1. Check Python Installation
+
+```bash
+python -V
+```
+
+### Expected Output
+
+```bash
+Python 3.x.x
+```
+
+> If you see a version number, Python is installed correctly.
+
+> If you see `"python is not recognized"` or `"Python was not found"`, Python is **not** installed.
+
+### Fix
+
+1. Open Microsoft Store
+2. Search for **Python**
+3. Click **Install**
+4. Restart your terminal
+5. Run:
+
+```bash
+python -V
+```
+
+again.
+
+---
+
+## 2. Upgrade pip
+
+```bash
+python -m pip install --upgrade pip
+```
+
+> `pip` is the package manager used to install Django and other Python libraries.
+
+---
+
+## 3. Create a Virtual Environment
+
+```bash
+python -m venv venv
+```
+
+> This creates a folder named `venv` in your project directory.
+
+---
+
+## 4. Activate the Virtual Environment
+
+```bash
+venv\Scripts\activate
+```
+
+### Expected Output
+
+```bash
+(venv) C:\your-path>
+```
+
+> The `(venv)` prefix confirms you are inside the virtual environment.
+
+---
+
+## 5. Install Django
+
+```bash
+pip install django
+```
+
+> Django installs **only inside this virtual environment** — not globally.
+
+---
+
+## 6. Verify Installation
+
+```bash
+pip freeze
+```
+
+### Expected Output
+
+```bash
+Django==5.x.x
+```
+
+> This lists all packages installed in the current virtual environment.
+
+---
+
+## 7. Create a Django Project
+
+```bash
+django-admin startproject myproject
+```
+
+> This generates your Django project folder and all necessary configuration files.
+
+---
+
+## 8. Move into the Project Folder
+
+```bash
+cd myproject
+```
+
+> ⚠️ You must be inside the project folder before running the development server.
+
+---
+
+## 9. Run the Development Server
+
+```bash
+python manage.py runserver
+```
+
+### Expected Output
+
+```bash
+Starting development server at http://127.0.0.1:8000/
+```
+
+> Open your browser and go to:
+
+```text
+http://127.0.0.1:8000/
+```
+
+to see the Django welcome page.
+
+---
+
+# Project Structure
+
+After running `startproject`, your folder will look like this:
+
+```text
+myproject/
+│
+├── manage.py
+│
+└── myproject/
+    ├── __init__.py
+    ├── settings.py
+    ├── urls.py
+    ├── asgi.py
+    └── wsgi.py
+```
+
+## File Descriptions
+
+| File | Purpose |
+|------|----------|
+| `manage.py` | Main command-line utility for managing your Django project |
+| `settings.py` | All project configuration: database, apps, middleware, static files |
+| `urls.py` | URL routing — maps web addresses to views |
+| `wsgi.py` | Web Server Gateway Interface — used for traditional deployment |
+| `asgi.py` | Asynchronous Server Gateway Interface — used for async/real-time support |
+| `__init__.py` | Marks the directory as a Python package (usually left empty) |
+
+---
+
+# Common Mistakes to Avoid
+
+| ❌ Mistake | ✅ Correct Practice |
+|---|---|
+| Not activating the virtual environment | Always check that `(venv)` is visible in your terminal prompt |
+| Installing Django globally with `pip install django` | Always install inside the virtual environment |
+| Running the server from the wrong folder | Always `cd` into the project folder before `python manage.py runserver` |
+| Forgetting to upgrade pip first | Run `pip install --upgrade pip` after creating the virtual environment |
+
+---
+
+# Quick Reference Summary
+
+| Concept | Summary |
+|---|---|
+| Django | Python web framework for building websites quickly |
+| Virtual Environment | Isolated workspace to avoid package conflicts |
+| pip | Python package installer |
+| `manage.py` | Project controller — runs server, migrations, and more |
+| `settings.py` | All project configuration lives here |
+
+---
+
+# Final Notes
+
+- Always activate your virtual environment before working on the project
+- Keep dependencies isolated for every project
+- Use `pip freeze > requirements.txt` later when sharing your project
+- Django projects become much easier to manage when your setup is clean from the beginning

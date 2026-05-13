@@ -1,0 +1,223 @@
+/* =========================================================
+   PREMIUM DOCUMENTATION DARK MODE
+   Inspired by:
+   - Vercel
+   - Stripe
+   - Linear
+   - Tailwind CSS
+   - Next.js
+
+   Focus:
+   - Readability
+   - Calm contrast
+   - Premium dark surfaces
+   - Comfortable long-form reading
+========================================================= */
+
+[data-theme='dark'] {
+    /* ======================================================
+       PRIMARY BRAND COLORS
+    ====================================================== */
+
+    --ifm-color-primary: #5eead4;
+    --ifm-color-primary-dark: #2dd4bf;
+    --ifm-color-primary-darker: #14b8a6;
+    --ifm-color-primary-darkest: #0f766e;
+    --ifm-color-primary-light: #99f6e4;
+    --ifm-color-primary-lighter: #ccfbf1;
+    --ifm-color-primary-lightest: #f0fdfa;
+
+    /* ======================================================
+       BACKGROUND SYSTEM
+    ====================================================== */
+
+    /* Main background */
+    --ifm-background-color: #0b1120;
+
+    /* Cards / navbar / sidebar */
+    --ifm-background-surface-color: #111827;
+
+    /* ======================================================
+       TEXT COLORS
+    ====================================================== */
+
+    /* Main readable text */
+    --ifm-font-color-base: #e5e7eb;
+
+    /* Softer secondary text */
+    --ifm-font-color-secondary: #9ca3af;
+
+    /* Headings */
+    --ifm-heading-color: #f9fafb;
+
+    /* Muted text */
+    --ifm-color-emphasis-600: #9ca3af;
+    --ifm-color-emphasis-700: #d1d5db;
+    --ifm-color-emphasis-800: #e5e7eb;
+
+    /* ======================================================
+       NAVBAR
+    ====================================================== */
+
+    --ifm-navbar-background-color: rgba(11, 17, 32, 0.75);
+    --ifm-navbar-link-color: #d1d5db;
+    --ifm-navbar-link-hover-color: #ffffff;
+
+    /* ======================================================
+       SIDEBAR
+    ====================================================== */
+
+    --ifm-menu-color: #cbd5e1;
+    --ifm-menu-color-active: #ffffff;
+    --ifm-menu-color-background-active: rgba(255, 255, 255, 0.04);
+
+    /* ======================================================
+       CODE BLOCKS
+    ====================================================== */
+
+    --ifm-code-background: rgba(255, 255, 255, 0.05);
+
+    --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.06);
+
+    /* ======================================================
+       BORDERS
+    ====================================================== */
+
+    --ifm-toc-border-color: rgba(255, 255, 255, 0.08);
+    --ifm-hr-border-color: rgba(255, 255, 255, 0.08);
+
+    /* ======================================================
+       LINKS
+    ====================================================== */
+
+    --ifm-link-color: #7dd3fc;
+    --ifm-link-hover-color: #bae6fd;
+}
+
+/* =========================================================
+   TYPOGRAPHY
+========================================================= */
+
+:root {
+    --ifm-font-family-base: 'Inter', sans-serif;
+    --ifm-font-family-monospace: 'JetBrains Mono', monospace;
+
+    --ifm-line-height-base: 1.75;
+    --ifm-code-font-size: 0.92rem;
+    --doc-sidebar-width: 200px;
+}
+
+/* =========================================================
+   CONTENT WIDTH
+========================================================= */
+
+.markdown {
+    max-width: 760px;
+}
+
+/* =========================================================
+   HEADINGS
+========================================================= */
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+    letter-spacing: -0.02em;
+}
+
+.markdown h1 {
+    font-weight: 800;
+}
+
+.markdown h2 {
+    font-weight: 700;
+}
+
+.markdown h3 {
+    font-weight: 650;
+}
+
+/* =========================================================
+   PARAGRAPHS
+========================================================= */
+
+.markdown p {
+    line-height: 1.85;
+}
+
+/* =========================================================
+   CODE BLOCKS
+========================================================= */
+
+.theme-code-block {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+/* =========================================================
+   INLINE CODE
+========================================================= */
+
+code {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.15rem 0.35rem;
+    border-radius: 6px;
+}
+
+/* =========================================================
+   SIDEBAR ACTIVE ITEM
+========================================================= */
+
+.menu__link--active {
+    border-radius: 10px;
+}
+
+/* =========================================================
+   TABLES
+========================================================= */
+
+table {
+    border-collapse: collapse;
+}
+
+table th,
+table td {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+/* =========================================================
+   OPTIONAL GLASSMORPHISM NAVBAR
+========================================================= */
+
+.navbar {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* =========================================================
+   OPTIONAL SMOOTHER PAGE TRANSITION FEEL
+========================================================= */
+
+html {
+    scroll-behavior: smooth;
+}

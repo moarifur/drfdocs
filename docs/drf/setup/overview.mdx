@@ -1,0 +1,91 @@
+---
+title: Overview
+description: Introduction to Django REST Framework — installation, concepts, and overview
+sidebar_position: 1
+---
+
+# Django REST Framework
+---
+## What is Django REST Framework?
+
+**Django REST Framework (DRF)** is a powerful toolkit built on top of Django for building RESTful APIs. This section marks the start of the DRF journey after having built basic JSON responses manually with plain Django.
+
+Install DRF inside your virtual environment:
+
+```bash
+pip install djangorestframework
+```
+
+Then add it to `INSTALLED_APPS` in `settings.py`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'rest_framework',
+]
+```
+
+That is the minimum configuration required to start working with DRF.
+
+---
+
+## Why DRF?
+
+Previously, returning data required:
+1. Fetching a QuerySet from the database
+2. Manually converting it to a Python dictionary using `.values()`
+3. Returning it with `JsonResponse`
+
+This is tedious and doesn't scale. DRF solves this through **Serializers** — they handle conversion automatically.
+
+---
+
+## Serialization vs Deserialization
+
+### Serialization (outgoing data)
+
+```
+Complex Data (QuerySet) → Python Native Type (dict) → JSON Response
+```
+
+When sending data to a client, DRF serializes model objects into JSON.
+
+### Deserialization (incoming data)
+
+```
+JSON (from client) → Python Native Type (dict) → Complex Data (Model Object saved to DB)
+```
+
+When receiving data from a client (e.g. a POST request), DRF deserializes JSON into Python types, validates them, and saves to the database.
+
+---
+
+## Two Types of Serializers
+
+| Type | Class | Notes |
+|------|-------|-------|
+| **Serializer** | `serializers.Serializer` | Manually define each field |
+| **Model Serializer** | `serializers.ModelSerializer` | Auto-generates fields from the model |
+
+These are not official DRF categories — they are a useful conceptual division.
+
+---
+
+## Two Types of Views
+
+| Type | Mechanism | Notes |
+|------|-----------|-------|
+| **Function-Based View** | `@api_view` decorator | Explicit method checks (`if request.method == 'GET'`) |
+| **Class-Based View** | `APIView` class | Define `get()`, `post()`, `put()`, `delete()` methods |
+
+---
+
+## How to Access the API
+
+| Method | Notes |
+|--------|-------|
+| **Browsable API** | Built into DRF — renders a UI in the browser |
+| **Postman** | Third-party desktop tool — recommended for professional work |
+| **cURL** | Command-line HTTP client — valid but not recommended for beginners |
+
+The **Browsable API** is DRF's interactive browser interface that shows status codes, allowed methods, and a form for POST requests.

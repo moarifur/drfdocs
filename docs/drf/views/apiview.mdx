@@ -1,0 +1,112 @@
+---
+title: APIView
+description: Using DRF's APIView class for Class-Based Views
+sidebar_position: 1
+---
+
+# APIView
+
+## Class-Based vs Function-Based
+
+With function-based views, HTTP method checks are done manually:
+
+```python
+if request.method == 'GET': ...
+if request.method == 'POST': ...
+```
+
+With **Class-Based Views** using `APIView`, each HTTP method maps to a dedicated method on the class:
+
+```python
+from rest_framework.views import APIView
+
+class MovieList(APIView):
+    def get(self, request):
+        ...
+    def post(self, request):
+        ...
+```
+
+No decorators are needed. If a method is defined, the view supports it. If not, it will return `405 Method Not Allowed` automatically.
+
+---
+
+## Movie List (GET + POST)
+
+```python
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from watchlist_app.models import Movie
+from watchlist_app.api.serializers import MovieSerializer
+
+class MovieList(APIView):
+    def get(self, request):
+        movies = Movie.objects.all()
+        serializer = MovieSerializer(movies, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = MovieSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
+
+---
+
+## Movie Detail (GET + PUT + DELETE)
+
+```python
+class MovieDetail(APIView):
+    def get(self, request, pk):
+        try:
+            movie = Movie.objects.get(pk=pk)
+        except Movie.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = MovieSerializer(movie)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        movie = Movie.objects.get(pk=pk)
+        serializer = MovieSerializer(movie, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        movie = Movie.objects.get(pk=pk)
+        movie.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+```
+
+---
+
+## URL Configuration
+
+Class-based views must be converted to callable views using `.as_view()`:
+
+```python
+from django.urls import path
+from watchlist_app.api.views import MovieList, MovieDetail
+
+urlpatterns = [
+    path('list/', MovieList.as_view(), name='movie-list'),
+    path('<int:pk>/', MovieDetail.as_view(), name='movie-detail'),
+]
+```
+
+This is a key difference from function-based views — the `.as_view()` call is mandatory.
+
+---
+
+## When to Use Each
+
+| Feature | Function-Based | Class-Based (APIView) |
+|---------|---------------|----------------------|
+| Simplicity | Simple tasks | More structured |
+| HTTP method routing | Manual `if` checks | Separate methods per verb |
+| Extensibility | Limited | Easier to extend/subclass |
+| Decorator needed | `@api_view` | None |

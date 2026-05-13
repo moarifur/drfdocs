@@ -1,0 +1,71 @@
+---
+title: Hyperlink Serializer
+description: Using HyperlinkedModelSerializer to return URLs instead of primary keys
+sidebar_position: 10
+---
+
+# HyperlinkSerializer
+
+## What Is HyperlinkedModelSerializer?
+
+`HyperlinkedModelSerializer` works identically to `ModelSerializer`, except it represents object identity using **hyperlinks (URLs)** rather than **primary keys (IDs)**.
+
+From the DRF documentation:
+
+> The `HyperlinkedModelSerializer` class is similar to the `ModelSerializer` class, except that it uses hyperlinks to represent relationships, rather than primary keys.
+
+---
+
+## Switching to HyperlinkedModelSerializer
+
+```python
+from rest_framework import serializers
+from watchlist_app.models import StreamPlatform
+
+class StreamPlatformSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model  = StreamPlatform
+        fields = '__all__'
+```
+
+---
+
+## Passing the Request Context
+
+`HyperlinkedModelSerializer` needs the current request to build absolute URLs. Pass `context={'request': request}` when initializing the serializer:
+
+```python
+class StreamPlatformList(APIView):
+    def get(self, request):
+        platforms = StreamPlatform.objects.all()
+        serializer = StreamPlatformSerializer(
+            platforms,
+            many=True,
+            context={'request': request}   # required
+        )
+        return Response(serializer.data)
+```
+
+Without this, DRF raises an error because it cannot construct the full URL.
+
+---
+
+## Response Comparison
+
+### ModelSerializer (default)
+```json
+{"id": 3, "name": "Netflix", "about": "...", "website": "..."}
+```
+
+### HyperlinkedModelSerializer
+```json
+{"url": "http://localhost:8000/stream/3/", "name": "Netflix", "about": "...", "website": "..."}
+```
+
+The `id` field is replaced by a `url` field.
+
+---
+
+## When to Use It
+
+`HyperlinkedModelSerializer` is used when building fully **HATEOAS-compliant** (Hypermedia as the Engine of Application State) APIs, where clients navigate by following links rather than constructing URLs manually. For most projects, `ModelSerializer` with explicit IDs is simpler and more common.

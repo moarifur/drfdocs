@@ -1,0 +1,90 @@
+---
+title: Fields
+description: Serializer fields and core arguments in DRF
+sidebar_position: 5
+---
+
+# Fields
+
+## Core Arguments
+
+Every serializer field accepts a set of common arguments called **core arguments**. These control the behaviour of the field:
+
+| Argument | Description |
+|----------|-------------|
+| `read_only=True` | Client can read this field but cannot write it (e.g. `id`, auto-generated fields) |
+| `write_only=True` | Client can send this field but it will not appear in responses (e.g. passwords) |
+| `required=True/False` | Whether the field must be present in input (default: `True`) |
+| `default=value` | Default value if the field is absent from input |
+| `validators=[...]` | List of validator functions |
+| `allow_null=True` | Allows `None` as a valid value |
+
+Example:
+
+```python
+class MovieSerializer(serializers.Serializer):
+    id          = serializers.IntegerField(read_only=True)
+    name        = serializers.CharField(required=True)
+    description = serializers.CharField(required=False, allow_null=True)
+    active      = serializers.BooleanField(default=True)
+```
+
+---
+
+## Field Types
+
+DRF provides field classes that mirror Django model field types:
+
+### Boolean
+```python
+serializers.BooleanField()
+serializers.NullBooleanField()
+```
+
+### String
+```python
+serializers.CharField()
+serializers.EmailField()
+serializers.URLField()
+serializers.RegexField(regex)
+serializers.SlugField()
+```
+
+### Numeric
+```python
+serializers.IntegerField()
+serializers.FloatField()
+serializers.DecimalField(max_digits, decimal_places)
+```
+
+### Date and Time
+```python
+serializers.DateTimeField()
+serializers.DateField()
+serializers.TimeField()
+serializers.DurationField()
+```
+
+### Special
+```python
+serializers.SerializerMethodField()   # Custom computed field (read-only)
+serializers.HiddenField(default=...)  # Not shown in output
+serializers.ImageField()
+serializers.FileField()
+```
+
+---
+
+## Most Commonly Used Fields
+
+In practice, you will use a small subset most of the time:
+
+- `CharField` — names, descriptions, text
+- `BooleanField` — flags and toggles
+- `IntegerField` — IDs, counts, ratings
+- `FloatField` / `DecimalField` — prices, measurements
+- `DateTimeField` — timestamps
+- `EmailField` / `URLField` — structured string types
+- `SerializerMethodField` — custom computed values
+
+For any special requirement (IP address, slug, UUID), check the DRF documentation under **Serializer Fields**.

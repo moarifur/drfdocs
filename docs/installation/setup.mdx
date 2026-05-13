@@ -1,10 +1,11 @@
 ---
 title: Setup
 description: Basic Django project setup including virtual environments and project structure
+sidebar_position: 1
 ---
 
 # Setup
-
+---
 ## Goal of This Section
 
 This section covers:
@@ -14,27 +15,79 @@ This section covers:
 
 ---
 
-## Virtual Environment
+## 1. Check Python Installation
+
+```bash
+python -V
+```
+
+### Expected Output
+
+```bash
+Python 3.x.x
+```
+
+> If you see a version number, Python is installed correctly.
+
+> If you see `"python is not recognized"` or `"Python was not found"`, Python is **not** installed.
+
+### Fix
+
+1. Open Microsoft Store
+2. Search for **Python**
+3. Click **Install**
+4. Restart your terminal
+5. Run:
+
+```bash
+python -V
+```
+
+again.
+
+---
+
+## 2. Upgrade pip
+
+```bash
+python -m pip install --upgrade pip
+```
+
+> `pip` is the package manager used to install Django and other Python libraries.
+
+---
+
+## 3. Virtual Environment
 
 A virtual environment is an **isolated Python environment** for a specific project. It allows different projects to use different package versions without conflicts.
 
 ### Create a Virtual Environment
 
 ```bash
-python -m venv myvenv
+python -m venv venv
 ```
 
 ### Activate It
 
 **Windows:**
 ```bash
-myvenv\Scripts\activate
+venv\Scripts\activate
 ```
 
 **Linux / Mac:**
 ```bash
-source myvenv/bin/activate
+source venv/bin/activate
 ```
+
+### Expected Output
+
+```bash
+(venv) C:\your-path>
+```
+
+> The `(venv)` prefix confirms you are inside the virtual environment.
+
+---
 
 ### Verify It Is Empty
 
@@ -46,7 +99,7 @@ A fresh virtual environment will show no packages.
 
 ---
 
-## Installing Django
+## 4. Installing Django
 
 Visit [djangoproject.com](https://www.djangoproject.com) and check the latest stable (LTS) version, then install:
 
@@ -64,7 +117,7 @@ You should now see Django and its dependencies listed.
 
 ---
 
-## Code Editor
+## 5. Code Editor
 
 It is recommended to use **Visual Studio Code**. Install the following extensions:
 

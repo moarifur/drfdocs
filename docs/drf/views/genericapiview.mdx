@@ -1,0 +1,115 @@
+---
+title: Generic APIView
+description: Using GenericAPIView with Mixins to reduce view boilerplate in DRF
+sidebar_position: 2
+---
+
+# GenericAPIView
+
+## Three Approaches to Class-Based Views
+
+| Approach | How |
+|----------|-----|
+| `APIView` | Define all methods manually (`get`, `post`, `put`, `delete`) |
+| `GenericAPIView` + Mixins | Declare `queryset` and `serializer_class`; call mixin methods |
+| Generic Class-Based Views | One-line views using pre-built classes (next section) |
+
+---
+
+## GenericAPIView
+
+`GenericAPIView` extends `APIView` with common attributes:
+
+```python
+from rest_framework.generics import GenericAPIView
+
+class ReviewList(GenericAPIView):
+    queryset           = Review.objects.all()
+    serializer_class   = ReviewSerializer
+```
+
+These two attributes (`queryset` and `serializer_class`) are the core — they tell the view what data to work with and how to serialize it.
+
+---
+
+## Mixins
+
+Mixins provide the actual action implementations. Import them from `rest_framework.mixins`:
+
+| Mixin | Method | HTTP | Action |
+|-------|--------|------|--------|
+| `ListModelMixin` | `.list()` | GET | Fetch all items |
+| `CreateModelMixin` | `.create()` | POST | Create new item |
+| `RetrieveModelMixin` | `.retrieve()` | GET | Fetch one item |
+| `UpdateModelMixin` | `.update()` | PUT/PATCH | Update one item |
+| `DestroyModelMixin` | `.destroy()` | DELETE | Delete one item |
+
+---
+
+## Review List View (GET + POST)
+
+```python
+from rest_framework import mixins, generics
+from watchlist_app.models import Review
+from watchlist_app.api.serializers import ReviewSerializer
+
+class ReviewList(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    generics.GenericAPIView
+):
+    queryset         = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+```
+
+---
+
+## Review Detail View (GET only)
+
+```python
+class ReviewDetail(
+    mixins.RetrieveModelMixin,
+    generics.GenericAPIView
+):
+    queryset         = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+```
+
+Since only `RetrieveModelMixin` is included, only GET is supported. PUT and DELETE are not available — DRF returns `405 Method Not Allowed` automatically.
+
+---
+
+## URL Configuration
+
+```python
+from watchlist_app.api.views import ReviewList, ReviewDetail
+
+urlpatterns = [
+    path('review/', ReviewList.as_view(), name='review-list'),
+    path('review/<int:pk>/', ReviewDetail.as_view(), name='review-detail'),
+]
+```
+
+---
+
+## Key Benefits
+
+- No manual if/else method routing
+- `queryset` and `serializer_class` are defined once and shared
+- Adding `UpdateModelMixin` or `DestroyModelMixin` requires only one line
+- Pagination, filtering, and throttling integrate automatically through `GenericAPIView`
+
+---
+
+## Next Step
+
+The next section replaces the Mixin pattern with **concrete Generic Views** (like `ListCreateAPIView`, `RetrieveUpdateDestroyAPIView`) that combine the common mixin patterns into single-line class definitions.
