@@ -1,0 +1,123 @@
+---
+title: CustomFields
+description: Adding computed custom fields to serializers using SerializerMethodField without modifying the model
+lecture: "020"
+topic: Custom Serializer Fields
+tags: [drf, serializers, method-field, computed-field, custom]
+sidebar_position: 9
+---
+
+# CustomFields
+---
+
+## What Are Custom Serializer Fields?
+
+Custom fields are **computed, read-only fields** added to a serializer that don't exist as columns in the database model. They are calculated on-the-fly using a method.
+
+Use cases include:
+- Computed values (e.g., name length, age from birth date)
+- Derived aggregates (e.g., review count, average rating)
+- Timestamps or durations
+
+---
+
+## `SerializerMethodField`
+
+The `SerializerMethodField` creates a read-only field whose value is returned by a method you define.
+
+### Naming Convention
+
+```python
+name_len = serializers.SerializerMethodField()
+# → DRF automatically looks for: get_name_len(self, obj)
+```
+
+The method must be named `get_<field_name>`.
+
+---
+
+## Example
+
+```python
+class MovieSerializer(serializers.ModelSerializer):
+    name_len = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Movie
+        fields = '__all__'
+
+    def get_name_len(self, obj):
+        return len(obj.name)
+```
+
+### Response
+
+```json
+{
+  "id": 1,
+  "name": "Python vs Java",
+  "description": "A great movie",
+  "active": true,
+  "name_len": 14
+}
+```
+
+The `name_len` field appears in the response but is not stored in the database.
+
+---
+
+## Method Signature
+
+```python
+def get_<field_name>(self, obj):
+    # obj → the current model instance being serialized
+    return <computed_value>
+```
+
+| Parameter | Description |
+|---|---|
+| `self` | The serializer instance |
+| `obj` | The model object being serialized (e.g., `Movie` instance) |
+
+---
+
+## More Examples
+
+### Count related objects
+
+```python
+review_count = serializers.SerializerMethodField()
+
+def get_review_count(self, obj):
+    return obj.review_set.count()
+```
+
+### Compute duration from timestamps
+
+```python
+days_since_created = serializers.SerializerMethodField()
+
+def get_days_since_created(self, obj):
+    from django.utils import timezone
+    delta = timezone.now() - obj.created
+    return delta.days
+```
+
+---
+
+## Key Points
+
+| Property | Value |
+|---|---|
+| Read/Write | **Read-only** only |
+| DB column needed | No |
+| Defined in model | No — defined in serializer |
+| Method prefix | Always `get_` |
+
+---
+
+## When to Use
+
+- You need to display something in the API response that is **calculated** from existing data
+- You don't want to add a new column to your database model
+- The value would be expensive to store but cheap to compute

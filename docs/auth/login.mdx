@@ -1,0 +1,67 @@
+---
+title: Login
+description: Setting up a temporary login page for testing permissions and authentication in DRF
+sidebar_position: 1
+---
+
+# Login
+---
+## Why a Temporary Login Page?
+
+Before building full authentication, you need a way to log in as different users — including regular users like `John` — directly from the browsable API. Django's admin panel only accepts staff or superuser accounts, which excludes regular users from testing.
+
+DRF solves this with a built-in temporary login URL.
+
+---
+
+## User Types in Django
+
+Django's admin panel shows three status flags per user:
+
+| Flag | What It Means |
+|------|---------------|
+| **Active** | The account is enabled (unchecking this is equivalent to deactivating an account) |
+| **Staff status** | Can access the admin panel, but cannot edit anything by default |
+| **Superuser status** | Full access — can add, edit, and delete anything on the site |
+
+When you register a new user through the API (without granting staff or superuser status), they are a **normal user** and cannot access the admin panel.
+
+---
+
+## Adding the Temporary Login URL
+
+Open your main `urls.py` (`watchmate/urls.py`) and add the DRF login route:
+
+```python
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('watch/', include('watchlist_app.api.urls')),
+    path('api-auth/', include('rest_framework.urls')),   # ← add this
+]
+```
+
+`rest_framework.urls` provides two built-in endpoints:
+
+- `api-auth/login/` — the temporary login form
+- `api-auth/logout/` — the temporary logout link
+
+---
+
+## How It Works
+
+Once added, a **Log In** button appears in the top-right corner of every DRF browsable API page. Clicking it opens a standard login form that accepts any valid Django user — including regular users like `John`.
+
+After logging in as `John`, you can:
+- Add reviews through `John`'s account
+- Verify that `John` cannot edit reviews created by another user
+- Test user-specific permissions end-to-end
+
+---
+
+## Important Notes
+
+- This is a **temporary solution** for testing purposes only. It will be removed once proper token authentication is set up.
+- Always log in as admin first to confirm staff/superuser behavior, then switch to a regular user like `John` to test restrictions.
+- The actual login and logout UI used in production will come from the token authentication implementation in the next section.

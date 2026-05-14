@@ -1,0 +1,179 @@
+---
+title: SearchOrdering
+description: Implementing django-filter's FilterBackend, SearchFilter, and OrderingFilter on DRF Generic Views
+lesson: 56
+topic: Filter, Search, and Ordering
+sidebar_position: 5
+---
+
+# SearchOrdering
+---
+## Overview
+
+This lesson implements all three filter types — **DjangoFilterBackend** (exact match), **SearchFilter** (text search), and **OrderingFilter** (sorting) — using the `django-filter` package on a DRF `ListAPIView`.
+
+---
+
+## Setup
+
+Install and register the package:
+
+```bash
+pip install django-filter
+```
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    ...
+    'django_filters',
+]
+```
+
+---
+
+## 1. DjangoFilterBackend (Exact Match Filter)
+
+Best for filtering by fixed, known values like ratings, categories, booleans, or exact IDs.
+
+```python
+# views.py
+from django_filters.rest_framework import DjangoFilterBackend
+
+class ReviewList(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['review_user__username', 'active']
+
+    def get_queryset(self):
+        pk = self.kwargs['pk']
+        return Review.objects.filter(watchlist=pk)
+```
+
+**Example requests:**
+
+```
+GET /stream/5/review/?active=true
+GET /stream/5/review/?review_user__username=john
+GET /stream/5/review/?review_user__username=john&active=true
+```
+
+> The filter requires an **exact match**. Searching for `bat` will not return `batman`. Use `SearchFilter` for partial matches.
+
+---
+
+## 2. SearchFilter (Partial Text Search)
+
+Best for user-facing search boxes where partial matches are expected.
+
+```python
+from rest_framework.filters import SearchFilter
+
+class WatchListGV(generics.ListAPIView):
+    queryset = WatchList.objects.all()
+    serializer_class = WatchListSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ['title', 'platform__name']
+```
+
+**Example requests:**
+
+```
+GET /watch/?search=boy         # matches "The Boy", "Boy Meets World"
+GET /watch/?search=man         # matches "Batman", "Superman", "The Man"
+GET /watch/?search=Netflix     # matches by platform name
+```
+
+> Use double underscore (`__`) to traverse ForeignKeys in `search_fields`:
+> `'platform__name'` searches the `name` field on the related `StreamPlatform` model.
+
+---
+
+## Search Prefix Modifiers
+
+| Prefix | Behaviour | Example |
+|--------|-----------|---------|
+| *(none)* | Case-insensitive `icontains` | `batman` matches `Batman` |
+| `=` | Exact match | `=superman` matches only `superman` |
+| `^` | Starts with | `^the` matches titles starting with "The" |
+| `@` | Full-text search (PostgreSQL only) | `@justice league` |
+| `$` | Regex search | `$bat.*man` |
+
+```python
+search_fields = ['^title', '=platform__name']
+```
+
+---
+
+## 3. OrderingFilter (Sorting)
+
+Best for sorting results by a numeric or alphabetical field.
+
+```python
+from rest_framework.filters import OrderingFilter
+
+class WatchListGV(generics.ListAPIView):
+    queryset = WatchList.objects.all()
+    serializer_class = WatchListSerializer
+    filter_backends = [OrderingFilter]
+    ordering_fields = ['avg_rating']
+```
+
+**Example requests:**
+
+```
+GET /watch/?ordering=avg_rating     # Ascending (lowest rating first)
+GET /watch/?ordering=-avg_rating    # Descending (highest rating first)
+```
+
+The Browsable API will also display a sort dropdown when `OrderingFilter` is active.
+
+---
+
+## Combining Multiple Filter Backends
+
+You can apply all three backends together on the same view:
+
+```python
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
+
+class WatchListGV(generics.ListAPIView):
+    queryset = WatchList.objects.all()
+    serializer_class = WatchListSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['platform__name']
+    search_fields = ['title', 'platform__name']
+    ordering_fields = ['avg_rating', 'number_rating']
+```
+
+---
+
+## Filter Backend Comparison
+
+| Backend | Query Param | Match Type | Best Used For |
+|---------|-------------|------------|---------------|
+| `DjangoFilterBackend` | `?field=value` | Exact | Ratings, booleans, categories |
+| `SearchFilter` | `?search=term` | Partial (icontains) | Title, name, description search |
+| `OrderingFilter` | `?ordering=field` | Sort only | Price, rating, date columns |
+
+---
+
+## Compatibility Note
+
+All three filter backends only work with **Generic API Views**:
+
+```python
+generics.ListAPIView
+generics.RetrieveAPIView
+generics.ListCreateAPIView
+# ... etc.
+```
+
+They **cannot** be applied to `APIView` or function-based views directly. For those, use `get_queryset()` or `request.query_params` manually.
+
+---
+
+## Key Takeaway
+
+Use `DjangoFilterBackend` for exact field matches, `SearchFilter` for user-facing text search across multiple fields, and `OrderingFilter` for sortable results. All three can coexist on the same view via `filter_backends = [...]`.

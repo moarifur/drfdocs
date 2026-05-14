@@ -1,0 +1,164 @@
+---
+title: Postman
+description: Using Postman to test GET, POST, PUT, PATCH, and DELETE requests against a Django REST Framework API
+topic: Postman
+lecture: "033"
+tags: [postman, api-testing, http-methods, rest-client, django-rest-framework]
+sidebar_position: 6
+---
+
+# Postman
+---
+## Overview
+
+**Postman** is a third-party API client used to send HTTP requests to your API and inspect responses. While Django REST Framework's **Browsable API** is great during development, Postman is the industry-standard tool for testing — especially when working with authentication headers, tokens, and raw JSON bodies.
+
+---
+
+## Why Use Postman
+
+| Scenario | Browsable API | Postman |
+|---|---|---|
+| Quick GET during development | ✅ Easy | ✅ Easy |
+| Sending auth tokens / headers | ❌ Limited | ✅ Full control |
+| Testing from mobile/JS perspective | ❌ Not representative | ✅ Accurate raw response |
+| Saving requests across sessions | ❌ None | ✅ Persisted tabs |
+| Team collaboration on API specs | ❌ None | ✅ Collections & sharing |
+
+---
+
+## Setup
+
+1. Visit [postman.com](https://www.postman.com) and download the desktop app (free).
+2. Register a free account and log in.
+3. Click the **+** tab to open a new request.
+
+---
+
+## Sending Requests
+
+### GET Request
+
+```
+Method:  GET
+URL:     http://127.0.0.1:8000/stream/
+```
+
+Click **Send** — the response appears in the lower panel. Switch to the **Pretty** tab for formatted JSON.
+
+### POST Request
+
+```
+Method:  POST
+URL:     http://127.0.0.1:8000/stream/
+```
+
+1. Click **Body** → select **Raw** → choose **JSON** from the dropdown.
+2. Paste your JSON payload:
+
+```json
+{
+    "name": "HBO",
+    "about": "Silicon Valley, Succession, etc.",
+    "website": "https://www.hbo.com"
+}
+```
+
+3. Click **Send** — returns `201 Created` with the new object.
+
+### PUT Request (Full Update)
+
+```
+Method:  PUT
+URL:     http://127.0.0.1:8000/stream/3/
+```
+
+Body → Raw → JSON:
+
+```json
+{
+    "name": "HBO Updated",
+    "about": "Updated description",
+    "website": "https://www.hbo.com"
+}
+```
+
+### DELETE Request
+
+```
+Method:  DELETE
+URL:     http://127.0.0.1:8000/stream/3/
+```
+
+> **Important:** Always include the trailing slash (`/`) for individual element URLs. Without it, DRF returns an error.
+
+Returns `204 No Content` on success.
+
+---
+
+## Reading Response Headers
+
+Click the **Headers** tab in the response panel to see what actions are allowed on that endpoint:
+
+```
+Allow: GET, POST, HEAD, OPTIONS
+```
+
+or for a detail endpoint:
+
+```
+Allow: GET, PUT, PATCH, DELETE, HEAD, OPTIONS
+```
+
+---
+
+## HTTP Status Code Reference
+
+| Status Code | Meaning |
+|---|---|
+| `200 OK` | Successful GET or PUT |
+| `201 Created` | Successful POST |
+| `204 No Content` | Successful DELETE |
+| `400 Bad Request` | Validation error in payload |
+| `404 Not Found` | Resource does not exist |
+| `405 Method Not Allowed` | HTTP verb not permitted on this endpoint |
+
+---
+
+## Response Formats in Postman
+
+| Tab | Description |
+|---|---|
+| **Pretty** | Formatted, indented JSON — easiest to read |
+| **Raw** | Exact response as sent by the server |
+| **Preview** | Rendered HTML (for non-API responses) |
+
+Use **Pretty** for all API development work.
+
+---
+
+## Saving Requests for Later
+
+When authentication tokens are added to headers, re-entering them repeatedly is tedious. Save your request as a **Collection**:
+
+1. Click **Save** after building a request.
+2. Name it and assign it to a collection (e.g. `WatchList API`).
+3. Close and reopen Postman — all tabs and saved requests persist automatically.
+
+---
+
+## Postman vs. Browsable API Summary
+
+| Feature | Browsable API | Postman |
+|---|---|---|
+| Built into DRF | ✅ | ❌ (download required) |
+| Human-readable output | ✅ | ✅ (Pretty mode) |
+| Auth header injection | ❌ | ✅ |
+| Raw JSON body | Limited | ✅ Full control |
+| Industry standard | ❌ | ✅ |
+
+---
+
+## Key Takeaway
+
+> Postman mirrors what real clients — mobile apps, JavaScript frontends, third-party integrations — see when calling your API. Use it alongside the Browsable API during development, and rely on it exclusively once authentication and token headers are introduced.

@@ -1,0 +1,216 @@
+---
+title: WatchList
+description: API testing for the WatchList (movie) model — create, list, detail, and object-level assertions
+lecture: "065"
+topic: API Testing
+tags: [django, rest-framework, testing, watchlist, movies]
+sidebar_position: 4
+---
+
+# WatchList
+---
+## Overview
+
+This lecture covers testing the `WatchList` model (movies). Since a movie requires a streaming platform, the `setUp` method must create both a platform and a movie object. Tests cover creating a movie (as a normal user — which returns `403`), listing all movies, and accessing individual movies with assertions on the response data.
+
+---
+
+## Model Dependency Order
+
+```
+StreamPlatform  →  WatchList  →  Review
+```
+
+To create a `WatchList` entry, a `StreamPlatform` must exist first.
+
+---
+
+## Imports
+
+```python
+from django.contrib.auth.models import User
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework.authtoken.models import Token
+from watchlist_app import models
+```
+
+---
+
+## `setUp` — Full Initial State
+
+```python
+class WatchListTestCase(APITestCase):
+
+    def setUp(self):
+        # Create and authenticate user
+        self.user = User.objects.create_user(
+            username="example",
+            password="Password@123"
+        )
+        self.token = Token.objects.get(user__username=self.user.username)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+        # Create a StreamPlatform (required for WatchList)
+        self.stream = models.StreamPlatform.objects.create(
+            name="Netflix",
+            about="A streaming service",
+            website="https://www.netflix.com"
+        )
+
+        # Create a WatchList item manually for read tests
+        self.watchlist = models.WatchList.objects.create(
+            platform=self.stream,
+            title="Example Movie",
+            storyline="Example storyline",
+            active=True
+        )
+```
+
+---
+
+## Test: Create — Normal User Gets `403`
+
+Normal users cannot create movies — only admins can.
+
+```python
+def test_watchlist_create(self):
+    data = {
+        "platform": self.stream,
+        "title": "Example Movie",
+        "storyline": "Example storyline",
+        "active": True
+    }
+    response = self.client.post(reverse('movie-list'), data)
+    self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+```
+
+---
+
+## Test: List — GET All Movies
+
+```python
+def test_watchlist_list(self):
+    response = self.client.get(reverse('movie-list'))
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+---
+
+## Test: Individual Movie by ID
+
+Use `kwargs` with the movie's primary key to access a single item:
+
+```python
+def test_watchlist_individual(self):
+    response = self.client.get(
+        reverse('movie-detail', kwargs={'pk': self.watchlist.pk})
+    )
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+---
+
+## Asserting on Response Data
+
+Beyond status codes, the actual response data can be validated. Two examples:
+
+### Match the Movie Title
+
+```python
+self.assertEqual(
+    models.WatchList.objects.get(pk=self.watchlist.pk).title,
+    "Example Movie"
+)
+```
+
+### Match the Object Count
+
+Since only one movie was created, the count should be `1`:
+
+```python
+self.assertEqual(models.WatchList.objects.count(), 1)
+```
+
+---
+
+## Full Test Class
+
+```python
+class WatchListTestCase(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="example",
+            password="Password@123"
+        )
+        self.token = Token.objects.get(user__username=self.user.username)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+        self.stream = models.StreamPlatform.objects.create(
+            name="Netflix",
+            about="A streaming service",
+            website="https://www.netflix.com"
+        )
+
+        self.watchlist = models.WatchList.objects.create(
+            platform=self.stream,
+            title="Example Movie",
+            storyline="Example storyline",
+            active=True
+        )
+
+    def test_watchlist_create(self):
+        data = {
+            "platform": self.stream,
+            "title": "Example Movie",
+            "storyline": "Example storyline",
+            "active": True
+        }
+        response = self.client.post(reverse('movie-list'), data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_watchlist_list(self):
+        response = self.client.get(reverse('movie-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_watchlist_individual(self):
+        response = self.client.get(
+            reverse('movie-detail', kwargs={'pk': self.watchlist.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            models.WatchList.objects.get(pk=self.watchlist.pk).title,
+            "Example Movie"
+        )
+        self.assertEqual(models.WatchList.objects.count(), 1)
+```
+
+---
+
+## Permission Summary
+
+| User Type | Action | Expected Status |
+|---|---|---|
+| Normal user | POST (create) | `403 Forbidden` |
+| Normal user | GET (list) | `200 OK` |
+| Normal user | GET (detail) | `200 OK` |
+| Normal user | PUT (update) | `403 Forbidden` |
+| Normal user | DELETE | `403 Forbidden` |
+
+---
+
+## Homework
+
+Add the following test methods as additional practice:
+
+```python
+def test_watchlist_update(self):
+    # PUT request — normal user should get 403
+    ...
+
+def test_watchlist_delete(self):
+    # DELETE request — normal user should get 403
+    ...
+```

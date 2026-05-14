@@ -1,0 +1,132 @@
+---
+title: ConcreteViews
+description: Using Django REST Framework's built-in concrete view classes to eliminate boilerplate
+topic: Concrete View Classes
+lecture: "029"
+tags: [django-rest-framework, generics, concrete-views, class-based-views]
+sidebar_position: 2
+---
+
+# Concrete View Classes
+---
+
+## Overview
+
+**Concrete View Classes** are pre-built view classes provided by Django REST Framework under `rest_framework.generics`. They combine `GenericAPIView` with one or more **mixin classes** to give you fully functional views with zero boilerplate.
+
+Instead of writing `get()`, `post()`, `put()`, and `delete()` methods manually, you simply declare a queryset and serializer class.
+
+---
+
+## Mixins vs. Concrete Views
+
+| Approach | Code Required | Flexibility |
+|---|---|---|
+| Function-Based Views | High (all logic manual) | Maximum |
+| Class-Based Views with Mixins | Medium (define methods) | High |
+| **Concrete View Classes** | **Minimal (2 lines)** | **Standard use cases** |
+| ViewSets | Lowest | Simple CRUD |
+
+---
+
+## Available Concrete View Classes
+
+These classes are imported from `rest_framework.generics`:
+
+| Class | HTTP Methods | Use Case |
+|---|---|---|
+| `ListAPIView` | GET (list) | Read-only list of objects |
+| `CreateAPIView` | POST | Create a new object |
+| `RetrieveAPIView` | GET (single) | Read a single object |
+| `DestroyAPIView` | DELETE | Delete a single object |
+| `UpdateAPIView` | PUT, PATCH | Update a single object |
+| `ListCreateAPIView` | GET + POST | List + create |
+| `RetrieveUpdateAPIView` | GET + PUT + PATCH | Retrieve + update |
+| `RetrieveDestroyAPIView` | GET + DELETE | Retrieve + delete |
+| `RetrieveUpdateDestroyAPIView` | GET + PUT + PATCH + DELETE | Full detail operations |
+
+---
+
+## Implementation
+
+### Importing Concrete Views
+
+```python
+from rest_framework import generics
+from .models import Review
+from .serializers import ReviewSerializer
+```
+
+### Review List View (GET + POST)
+
+```python
+class ReviewList(generics.ListCreateAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+```
+
+### Review Detail View (GET + PUT + DELETE)
+
+```python
+class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+```
+
+That's it — **two lines per view** replace dozens of lines of manual method definitions.
+
+---
+
+## How It Works Internally
+
+Concrete views compose two parent classes:
+
+```
+RetrieveUpdateDestroyAPIView
+    ├── mixins.RetrieveModelMixin   → provides .retrieve()
+    ├── mixins.UpdateModelMixin     → provides .update(), .partial_update()
+    ├── mixins.DestroyModelMixin    → provides .destroy()
+    └── GenericAPIView              → provides .get_queryset(), .get_serializer()
+        └── APIView                 → provides .dispatch(), authentication, permissions
+```
+
+You inherit all these methods automatically just by subclassing the concrete view.
+
+---
+
+## URL Configuration
+
+```python
+# urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('review/', views.ReviewList.as_view(), name='review-list'),
+    path('review/<int:pk>/', views.ReviewDetail.as_view(), name='review-detail'),
+]
+```
+
+> **Important:** Always include the trailing slash (`/`) in URLs. Without it, you'll get a redirect or a 404.
+
+---
+
+## Testing the Views
+
+After wiring up URLs, all operations work as expected:
+
+| Action | Method | URL |
+|---|---|---|
+| List all reviews | GET | `/review/` |
+| Create review | POST | `/review/` |
+| Get single review | GET | `/review/3/` |
+| Update review | PUT | `/review/3/` |
+| Delete review | DELETE | `/review/3/` |
+
+A successful delete returns **HTTP 204 No Content**.
+
+---
+
+## Key Takeaway
+
+> Concrete view classes are the sweet spot between full manual control and zero-configuration ViewSets. For most standard CRUD endpoints, two lines — `queryset` and `serializer_class` — are all you need.

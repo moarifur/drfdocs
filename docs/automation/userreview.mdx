@@ -1,0 +1,109 @@
+---
+title: UserReview
+description: Testing the user-specific review endpoint using raw URL strings with query parameters
+lecture: "067"
+topic: API Testing
+tags: [django, rest-framework, testing, user-reviews, query-parameters]
+sidebar_position: 6
+---
+
+# User Review Testing
+---
+## Overview
+
+This lecture covers testing the **user-specific review endpoint** — a view that filters reviews by a `username` query parameter. It demonstrates an important technique: how to pass a direct URL string (with query params) instead of using `reverse()` when `reverse()` doesn't support that URL pattern easily.
+
+---
+
+## The Endpoint
+
+The user review view accepts a query parameter `username` and returns all reviews written by that user:
+
+```
+GET /watch/reviews/?username=example
+```
+
+This endpoint is a `ListAPIView` with no named URL pattern that accepts kwargs, so a raw URL string is used in the test.
+
+---
+
+## Writing the Test
+
+```python
+def test_user_review(self):
+    response = self.client.get(
+        '/watch/reviews/?username=' + self.user.username
+    )
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+### Why Not Use `reverse()` Here?
+
+`reverse()` is ideal for named URL patterns with positional or keyword arguments (like `/watch/1/reviews/`). However, **query parameters** (`?username=...`) are not part of the URL pattern — they are appended to the URL at request time. Passing them inline in the URL string is the correct approach.
+
+| Approach | When to Use |
+|---|---|
+| `reverse('view-name', kwargs={'pk': 1})` | Named URL with path parameters |
+| `'/watch/reviews/?username=example'` | URL with query string parameters |
+| `self.client.get(url, {'username': 'example'})` | Alternative: pass params as dict |
+
+---
+
+## Alternative: Passing Params as a Dictionary
+
+Django's test client also accepts query parameters as a separate dictionary argument:
+
+```python
+response = self.client.get(
+    '/watch/reviews/',
+    {'username': self.user.username}
+)
+```
+
+This is equivalent to appending `?username=example` in the URL string.
+
+---
+
+## Full Test Context
+
+```python
+class UserReviewTestCase(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="example",
+            password="Password@123"
+        )
+        self.token = Token.objects.get(user__username=self.user.username)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    def test_user_review(self):
+        response = self.client.get(
+            '/watch/reviews/?username=' + self.user.username
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+---
+
+## Note on Authentication for This Endpoint
+
+The user review view has no explicit `permission_classes` or throttling in this project, so both authenticated and unauthenticated requests are accepted. If a `permission_classes` is added later, an unauthenticated request would return `401 Unauthorized`.
+
+---
+
+## Summary
+
+| Concept | Detail |
+|---|---|
+| Endpoint type | `ListAPIView` with `username` query param filter |
+| URL pattern | `/watch/reviews/?username=<value>` |
+| Test method | `self.client.get('/watch/reviews/?username=' + ...)` |
+| Expected status | `200 OK` |
+| Reverse alternative | Pass params as dict: `self.client.get(url, {'username': val})` |
+
+---
+
+## What's Next
+
+With all URL endpoints tested — registration, login, logout, stream platforms, watch list items, reviews, and user-specific reviews — the testing section of this project is complete. The next topic is **Test Driven Development (TDD)**.

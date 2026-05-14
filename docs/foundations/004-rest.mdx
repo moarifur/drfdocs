@@ -1,0 +1,112 @@
+---
+title: REST
+description: Understanding REST architecture — endpoints, HTTP methods (CRUD), headers, status codes, and data format
+lecture: "004"
+topic: Understanding REST API
+tags: [rest, http, crud, json, methods, status-codes]
+sidebar_position: 4
+---
+
+# REST architecture
+---
+
+## What Is REST?
+
+**REST** (Representational State Transfer) is an **architectural pattern** for designing APIs. If you design your API following the REST architecture, you get a **RESTful API**.
+
+REST defines rules for:
+- **Endpoints** (URL structure)
+- **Methods** (HTTP verbs)
+- **Headers** (metadata about requests/responses)
+- **Data** (format of the payload)
+
+---
+
+## Endpoints
+
+Two primary URL patterns are used for most RESTful APIs:
+
+| URL Pattern | Purpose |
+|---|---|
+| `/movies/` | Returns the **complete list** of movies |
+| `/movies/127/` | Returns **individual** movie with ID 127 |
+
+### Subdomain vs Path-Based APIs
+
+```
+# Subdomain style (common in large platforms)
+api.twitter.com/tweets/
+
+# Path style
+movielist.com/api/movies/
+```
+
+---
+
+## HTTP Methods (CRUD)
+
+| CRUD Operation | HTTP Method | Description |
+|---|---|---|
+| **Create** | `POST` | Add a new resource |
+| **Retrieve** | `GET` | Fetch data (list or individual) |
+| **Update** | `PUT` | Update an existing resource |
+| **Delete** | `DELETE` | Remove a resource |
+
+### Which Methods Apply Where?
+
+| Endpoint | Allowed Methods | Reason |
+|---|---|---|
+| `/movies/` | `GET`, `POST` | Get full list or add a new movie |
+| `/movies/127/` | `GET`, `PUT`, `DELETE` | Get, update, or delete one specific movie |
+
+> You cannot `PUT` or `DELETE` on a list — those operations only apply to individual resources.
+
+---
+
+## Status Codes
+
+Every HTTP response includes a **status code** that describes the outcome.
+
+| Range | Category | Examples |
+|---|---|---|
+| `2xx` | Success | `200 OK`, `201 Created` |
+| `3xx` | Redirection | `301 Moved Permanently`, `307 Temporary Redirect` |
+| `4xx` | Client Error | `400 Bad Request`, `404 Not Found` |
+| `5xx` | Server Error | `500 Internal Server Error` |
+
+---
+
+## Data Format: JSON
+
+All data between client and server is exchanged in **JSON** format.
+
+```json
+// Client sends (POST request to create a movie)
+{
+  "name": "Spider-Man",
+  "description": "A superhero film",
+  "active": true
+}
+
+// Server responds
+{
+  "id": 127,
+  "name": "Spider-Man",
+  "description": "A superhero film",
+  "active": true
+}
+```
+
+---
+
+## Summary
+
+```
+REST API = Endpoint + Method + Header + Data (JSON)
+
+GET    /movies/       → Fetch all movies
+POST   /movies/       → Add a new movie
+GET    /movies/127/   → Fetch movie #127
+PUT    /movies/127/   → Update movie #127
+DELETE /movies/127/   → Delete movie #127
+```

@@ -1,0 +1,131 @@
+---
+title: JSONList
+description: Creating a JSON response for all elements using Django's JsonResponse without DRF
+lecture: "008"
+topic: Creating JSON Response — All Elements
+tags: [django, json, views, queryset, response]
+sidebar_position: 3
+---
+
+# JSONList, without DRF
+---
+
+## Goal
+
+Return all movies from the database as a **JSON response** — without using Django REST Framework.
+> **Note:** Django REST Framework is not used in this section. The goal is to understand the raw Django approach first, so you appreciate why DRF is needed.
+
+This demonstrates the manual conversion process that DRF later automates.
+
+---
+
+## Conversion Pipeline
+
+```
+QuerySet (complex object)
+    → Python List of Dictionaries
+        → JsonResponse
+```
+
+---
+
+## Step 1: Import Dependencies
+
+In `watchlist_app/views.py`:
+
+```python
+from django.http import JsonResponse
+from watchlist_app.models import Movie
+```
+
+---
+
+## Step 2: Write the View Function
+
+```python
+def movie_list(request):
+    movies = Movie.objects.all()       # QuerySet
+    data = {"movies": list(movies.values())}  # Convert to list of dicts
+    return JsonResponse(data)
+```
+
+### Why `.values()`?
+
+`Movie.objects.all()` returns a **QuerySet** — a Django-specific object that cannot be serialized directly to JSON.
+
+`.values()` returns a QuerySet of **dictionaries** (one per object), which can be converted to a list and passed to `JsonResponse`.
+
+---
+
+## Step 3: Wire Up the URL
+
+In `watchlist_app/urls.py`:
+
+```python
+from django.urls import path
+from watchlist_app import views
+
+urlpatterns = [
+    path('list/', views.movie_list, name='movie-list'),
+]
+```
+
+In `watchmate/urls.py`:
+
+```python
+from django.urls import path, include
+
+urlpatterns = [
+    path('movie/', include('watchlist_app.urls')),
+]
+```
+
+Visit: `http://127.0.0.1:8000/movie/list/`
+
+---
+
+## JSON vs Python Differences
+
+| Python | JSON |
+|---|---|
+| `True` / `False` | `true` / `false` |
+| Single quotes `'...'` | Double quotes `"..."` |
+| `None` | `null` |
+
+`JsonResponse` handles these conversions automatically when transforming a Python dictionary.
+
+---
+
+## Sample Response
+
+```json
+{
+  "movies": [
+    {
+      "id": 1,
+      "name": "Python vs Java",
+      "description": "Description one",
+      "active": true
+    },
+    {
+      "id": 2,
+      "name": "JavaScript The End",
+      "description": "Description two",
+      "active": true
+    }
+  ]
+}
+```
+
+---
+
+## Why This Approach Is Insufficient
+
+| Challenge | Problem |
+|---|---|
+| Many fields | Must map every field manually |
+| Validation | No built-in validation support |
+| POST requests | Must manually parse incoming JSON and validate |
+| Create / Update / Delete | Complex without a framework |
+
+> This is exactly why **Django REST Framework** exists — it automates all of this with **serializers**.

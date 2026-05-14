@@ -1,0 +1,143 @@
+---
+title: JWT
+description: Introduction to JWT authentication — access tokens, refresh tokens, and the stateless verification model
+sidebar_position: 12
+---
+
+# JWT
+---
+## What Is JWT?
+
+**JSON Web Token (JWT)** is an authentication method that generates tokens using a cryptographic algorithm instead of storing them in the database. It is widely used when a Django backend serves a JavaScript frontend (React, Angular, Vue).
+
+> This section is **optional**. If token authentication meets your needs, you can skip directly to the next topic. No code from these lectures carries over.
+
+---
+
+## JWT vs Token Authentication
+
+| Feature | Token Auth | JWT |
+|---------|-----------|-----|
+| Token stored in DB | Yes | No |
+| DB query per request | Yes | No |
+| Revocable immediately | Yes | No (until expiry) |
+| Two tokens | No | Yes (access + refresh) |
+| Stateless | No | Yes |
+| Best for | Mobile apps | JavaScript frontends |
+
+---
+
+## Two-Token System
+
+JWT generates two tokens at login:
+
+| Token | Default Lifetime | Purpose |
+|-------|-----------------|---------|
+| **Access Token** | 5 minutes | Sent with every request for authentication |
+| **Refresh Token** | 24 hours | Used to generate a new access token when the old one expires |
+
+Both are stored on the client (typically in localStorage or memory). Neither is stored in the database.
+
+---
+
+## Token Structure
+
+Every JWT is composed of three Base64-encoded parts separated by dots:
+
+```
+header.payload.signature
+```
+
+| Part | Contains |
+|------|----------|
+| **Header** | Algorithm type (e.g. HS256) and token type |
+| **Payload** | User ID, expiry time, JWT ID, and other claims |
+| **Signature** | Cryptographic hash that validates the token's integrity |
+
+If any part of the token is tampered with, the signature becomes invalid and the token is rejected.
+
+You can decode any JWT at [jwt.io](https://jwt.io) to inspect its contents.
+
+---
+
+## Installation
+
+Install the `djangorestframework-simplejwt` package:
+
+```bash
+pip install djangorestframework-simplejwt
+```
+
+---
+
+## Configuration
+
+Update `settings.py`:
+
+```python
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+```
+
+Add the token URLs in `user_app/api/urls.py`:
+
+```python
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+urlpatterns = [
+    path('api/token/',         TokenObtainPairView.as_view(),  name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(),     name='token_refresh'),
+]
+```
+
+---
+
+## Token Refresh Flow
+
+When the access token expires, use the refresh token to get a new one:
+
+`POST /api/token/refresh/` — Body (form-data):
+
+| Key | Value |
+|-----|-------|
+| `refresh` | your_refresh_token |
+
+Response:
+
+```json
+{
+  "access": "new_access_token_here"
+}
+```
+
+To also rotate the refresh token (get a new one with every refresh), add this to `settings.py`:
+
+```python
+SIMPLE_JWT = {
+    'ROTATE_REFRESH_TOKENS': True,
+}
+```
+
+---
+
+## Sending a JWT Request in Postman
+
+Use `Bearer` instead of `Token` in the Authorization header:
+
+| Key | Value |
+|-----|-------|
+| `Authorization` | `Bearer <access_token>` |
+
+---
+
+## The Revocation Limitation
+
+Because JWT tokens are not stored in the database, they **cannot be invalidated before they expire**. If a user's access token is compromised:
+
+- It remains valid for up to 5 minutes
+- Only deleting the user account revokes access immediately
+
+This is the primary trade-off of JWT. For most use cases, the 5-minute window is acceptable. For high-security applications, token blacklisting (via `simplejwt`'s blacklist app) is the solution.

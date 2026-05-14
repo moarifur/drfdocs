@@ -1,0 +1,130 @@
+---
+title: JWTRegistration
+description: Returning JWT access and refresh tokens after user registration
+sidebar_position: 14
+---
+
+# JWTRegistration
+---
+## Goal
+
+After a user registers, return JWT access and refresh tokens immediately — so the user is authenticated without needing to log in separately.
+
+---
+
+## Generating Tokens Manually
+
+`simplejwt` provides a `RefreshToken` class that can generate a token pair for any user:
+
+```python
+from rest_framework_simplejwt.tokens import RefreshToken
+
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access':  str(refresh.access_token),
+    }
+```
+
+`RefreshToken.for_user(user)` creates a refresh token containing the user's ID in its payload. The access token is derived from it.
+
+---
+
+## Updating the Registration View
+
+`user_app/api/views.py`:
+
+```python
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+from user_app.api.serializers import RegistrationSerializer
+
+@api_view(['POST'])
+def registration_view(request):
+    serializer = RegistrationSerializer(data=request.data)
+    data = {}
+
+    if serializer.is_valid():
+        account = serializer.save()
+
+        data['response'] = 'Registration successful.'
+        data['username'] = account.username
+        data['email']    = account.email
+
+        refresh = RefreshToken.for_user(account)
+        data['token'] = {
+            'refresh': str(refresh),
+            'access':  str(refresh.access_token),
+        }
+    else:
+        data = serializer.errors
+
+    return Response(data)
+```
+
+---
+
+## Successful Registration Response
+
+```json
+{
+  "response": "Registration successful.",
+  "username": "example7",
+  "email": "example7@xyz.com",
+  "token": {
+    "refresh": "eyJhbGciOiJIUzI1NiIsInR5...",
+    "access":  "eyJhbGciOiJIUzI1NiIsInR5..."
+  }
+}
+```
+
+The client immediately has both tokens — no second login request needed.
+
+---
+
+## Removing Auto-Signal Token Creation
+
+Since JWT tokens are not stored in the database, the `post_save` signal used in token authentication is no longer needed. Comment it out or remove the import in `views.py`:
+
+```python
+# from user_app import models   ← remove this line
+```
+
+The signal code in `models.py` can also be removed since it created database tokens (which JWT does not use).
+
+---
+
+## Advantages and Disadvantages of JWT
+
+### Advantages
+- No database query per request — tokens are verified algorithmically
+- Works seamlessly with JavaScript frontends (React, Angular, Vue)
+- Token expiry is configurable
+- Each token carries user identity in its payload
+
+### Disadvantages
+- Cannot revoke an access token before it expires (5 minutes by default)
+- Deleting a user from the database does **not** immediately invalidate their token
+- More complex logout logic — must delete tokens from client localStorage
+
+---
+
+## Common Settings
+
+```python
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME':  timedelta(minutes=5),   # common: 5-15 minutes
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=14),      # common: 7-14 days
+    'ROTATE_REFRESH_TOKENS':  True,
+}
+```
+
+---
+
+## JWT Logout
+
+Since tokens are not in the database, "logout" on the backend means nothing — the client must delete the tokens from its own storage (e.g. clear localStorage). For server-side invalidation, use `simplejwt`'s optional **token blacklist** app.

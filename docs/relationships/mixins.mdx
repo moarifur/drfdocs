@@ -1,0 +1,179 @@
+---
+title: "Mixins"
+description: "Using Django REST Framework's GenericAPIView with Mixin classes to reduce boilerplate and implement list, create, retrieve, update, and destroy operations cleanly."
+topic: "Django REST Framework"
+lecture: 27
+tags: ["django", "drf", "generics", "mixins", "class-based-views", "apiview"]
+sidebar_position: 6
+---
+
+# Mixins
+---
+
+Django REST Framework offers three progressive ways to write class-based views. This lecture focuses on the **second approach**: combining `GenericAPIView` with **Mixin** classes to eliminate boilerplate while keeping fine-grained control.
+
+---
+
+## Three Approaches to Class-Based Views
+
+| Approach                              | Import                                  | Boilerplate | Control  |
+|---------------------------------------|-----------------------------------------|-------------|----------|
+| 1. `APIView`                          | `from rest_framework.views import APIView` | High     | Full     |
+| 2. `GenericAPIView` + Mixins          | `from rest_framework import generics, mixins` | Medium | High  |
+| 3. Concrete Generic Views             | `from rest_framework import generics`   | Low         | Moderate |
+
+> **Prerequisite:** Make sure `APIView` is fully understood before moving to mixins.
+
+---
+
+## Available Mixin Classes
+
+| Mixin Class            | HTTP Method | Action                     | Method to call    |
+|------------------------|-------------|----------------------------|-------------------|
+| `ListModelMixin`       | GET (list)  | Fetch all objects           | `.list(request)`  |
+| `CreateModelMixin`     | POST        | Create a new object         | `.create(request)`|
+| `RetrieveModelMixin`   | GET (detail)| Fetch a single object       | `.retrieve(request)` |
+| `UpdateModelMixin`     | PUT / PATCH | Update an existing object   | `.update(request)` |
+| `DestroyModelMixin`    | DELETE      | Delete an existing object   | `.destroy(request)` |
+
+---
+
+## GenericAPIView Attributes
+
+These **must** be defined on every `GenericAPIView` subclass:
+
+| Attribute            | Purpose                                                         |
+|----------------------|-----------------------------------------------------------------|
+| `queryset`           | The base queryset the view operates on                          |
+| `serializer_class`   | The serializer used to validate and render data                 |
+| `lookup_field`       | Field used to look up individual objects (default: `pk`)       |
+| `lookup_url_kwarg`   | URL keyword argument for the lookup (default: same as `lookup_field`) |
+
+---
+
+## Example 1 — ReviewList (GET all + POST)
+
+Combines `ListModelMixin` and `CreateModelMixin` to handle both listing all reviews and creating a new one on the same endpoint.
+
+```python
+# views.py
+from rest_framework import generics, mixins
+from .models import Review
+from .serializer import ReviewSerializer
+
+
+class ReviewList(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    generics.GenericAPIView
+):
+    queryset           = Review.objects.all()
+    serializer_class   = ReviewSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+```
+
+---
+
+## Example 2 — ReviewDetail (GET single object)
+
+Uses only `RetrieveModelMixin` to fetch a single review by primary key.
+
+```python
+class ReviewDetail(
+    mixins.RetrieveModelMixin,
+    generics.GenericAPIView
+):
+    queryset         = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+```
+
+Since only `RetrieveModelMixin` is included, POST requests are not available on this endpoint.
+
+---
+
+## URL Configuration
+
+```python
+# urls.py
+from django.urls import path
+from watchmate import views
+
+urlpatterns = [
+    # existing routes …
+    path('review/',      views.ReviewList.as_view(),   name='review-list'),
+    path('review/<int:pk>/', views.ReviewDetail.as_view(), name='review-detail'),
+]
+```
+
+---
+
+## How Mixins Reduce Boilerplate
+
+### With plain APIView (verbose):
+
+```python
+class ReviewList(APIView):
+    def get(self, request):
+        reviews    = Review.objects.all()
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = ReviewSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
+
+### With GenericAPIView + Mixins (concise):
+
+```python
+class ReviewList(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    generics.GenericAPIView
+):
+    queryset         = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+```
+
+---
+
+## Required Imports
+
+```python
+from rest_framework import generics, mixins
+```
+
+Both must be imported. Using only `generics` without `mixins` will raise an `AttributeError` when `.list()` or `.create()` is called.
+
+---
+
+## What Comes Next
+
+The mixin approach still requires manually delegating HTTP methods (`.get()` → `.list()`, etc.). The **next step** is using DRF's **concrete generic views** (e.g., `generics.ListCreateAPIView`), which eliminate even that delegation and reduce the entire view to just two attribute lines.
+
+---
+
+## Key Takeaways
+
+- `GenericAPIView` provides the scaffolding (`queryset`, `serializer_class`, `lookup_field`).
+- Mixin classes inject specific actions (`list`, `create`, `retrieve`, `update`, `destroy`).
+- Import **both** `generics` and `mixins` from `rest_framework`.
+- Attribute names (`queryset`, `serializer_class`) are fixed — they cannot be renamed.
+- Only include the mixins you need; unused HTTP methods will correctly return `405 Method Not Allowed`.

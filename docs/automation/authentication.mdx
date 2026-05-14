@@ -1,0 +1,146 @@
+---
+title: Authentication
+description: API testing for login and logout endpoints with token-based authentication
+lecture: "063"
+topic: API Testing
+tags: [django, rest-framework, testing, login, logout, token]
+sidebar_position: 2
+---
+
+# Authentication
+---
+## Overview
+
+This lecture covers writing test cases for the **login** and **logout** endpoints. These tests introduce two important concepts: the `setUp` method for shared test state, and token-based credential handling for authenticated requests.
+
+---
+
+## The `setUp` Method
+
+When multiple test methods in a class need common data (e.g., a user to log in with), that data is prepared inside `setUp`. This method runs **before every test method** in the class.
+
+```python
+class LoginLogoutTestCase(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="example",
+            password="NewPassword123"
+        )
+```
+
+> `setUp` is always called before each `test_*` method — it is not a test itself.
+
+---
+
+## Login Test
+
+```python
+def test_login(self):
+    data = {
+        "username": "example",
+        "password": "NewPassword123"
+    }
+    response = self.client.post(reverse('login'), data)
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+### Common Error: Wrong Password
+
+If the password in `setUp` and the password in the test data do not match, the API returns `400 Bad Request`. Always ensure both match exactly.
+
+| Mistake | Result |
+|---|---|
+| Password mismatch between `setUp` and test data | `400 Bad Request` |
+| Using GET instead of POST | `405 Method Not Allowed` |
+| Correct credentials | `200 OK` |
+
+---
+
+## Logout Test
+
+Logging out requires sending an authenticated request — the token must be attached to the client before the logout request is made.
+
+### Step-by-Step
+
+```python
+def test_logout(self):
+    # Step 1: Get the token for the user created in setUp
+    self.token = Token.objects.get(user__username=self.user.username)
+
+    # Step 2: Attach the token to the client as credentials
+    self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    # Step 3: Send POST request to the logout endpoint
+    response = self.client.post(reverse('logout'))
+
+    # Step 4: Assert the expected status code
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+### How `credentials` Works
+
+| Method | Purpose |
+|---|---|
+| `self.client.credentials(HTTP_AUTHORIZATION='Token <key>')` | Attaches a token header to all subsequent requests from this client |
+| `self.client.force_authenticate(user=...)` | Bypasses token lookup — useful for quick auth in tests |
+| `self.client.force_authenticate(user=None)` | Logs out / removes authentication |
+
+---
+
+## Full Example
+
+```python
+from django.contrib.auth.models import User
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework.authtoken.models import Token
+
+
+class LoginLogoutTestCase(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="example",
+            password="NewPassword123"
+        )
+
+    def test_login(self):
+        data = {
+            "username": "example",
+            "password": "NewPassword123"
+        }
+        response = self.client.post(reverse('login'), data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_logout(self):
+        self.token = Token.objects.get(user__username=self.user.username)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        response = self.client.post(reverse('logout'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+---
+
+## Running Tests
+
+```bash
+# Run all tests
+python manage.py test
+
+# Run only the user app tests
+python manage.py test user_app
+```
+
+---
+
+## Key Takeaways
+
+| Concept | Detail |
+|---|---|
+| `setUp` | Runs before every test — use it to create shared data like users |
+| Token retrieval | Use `Token.objects.get(user__username=...)` to fetch the token |
+| Token attachment | Use `self.client.credentials(HTTP_AUTHORIZATION='Token ' + key)` |
+| Status code testing | Use `self.assertEqual(response.status_code, status.HTTP_200_OK)` |
+| Breaking a test intentionally | Change `post` to `get` → get `405 Method Not Allowed` — tests catch this |

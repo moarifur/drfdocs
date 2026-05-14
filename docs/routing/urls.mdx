@@ -1,0 +1,106 @@
+---
+title: URLs
+description: Designing nested URL structures for review endpoints in Django REST Framework
+topic: URL Structure
+lecture: "028"
+tags: [django-rest-framework, urls, routing, api-design]
+sidebar_position: 1
+---
+
+# URL Structure
+---
+
+## Overview
+
+When building a review API, a flat URL that returns **all reviews from every movie** is not useful. Just like Amazon shows reviews only for the product you're currently viewing, your API should return reviews scoped to a specific movie or stream item.
+
+This lecture covers how to design two distinct review URL patterns:
+
+| URL Pattern | Purpose |
+|---|---|
+| `stream/<int:pk>/review/` | Get all reviews for a specific movie/show |
+| `stream/<int:pk>/review/<int:review_pk>/` | Get, update, or delete an individual review |
+
+---
+
+## The Problem with Flat Review URLs
+
+A view that simply returns `Review.objects.all()` has two issues:
+
+1. **No scoping** — it returns reviews across all movies, which is meaningless to consumers.
+2. **No relationship** — the URL carries no information about *which* movie the reviews belong to.
+
+```python
+# BAD: Returns ALL reviews from all movies
+class ReviewList(generics.ListAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+```
+
+---
+
+## Correct URL Design
+
+Each review URL should be **nested under the movie (watchlist) it belongs to**.
+
+### URL Configuration
+
+```python
+# watchlist_app/urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    # All reviews for a specific movie
+    path('stream/<int:pk>/review/', views.ReviewList.as_view(), name='review-list'),
+
+    # Individual review — supports GET, PUT, DELETE
+    path('stream/<int:pk>/review/<int:review_pk>/', views.ReviewDetail.as_view(), name='review-detail'),
+]
+```
+
+### URL Breakdown
+
+| Segment | Type | Description |
+|---|---|---|
+| `stream/` | Static | Namespace for stream/movie resources |
+| `<int:pk>` | Dynamic | Primary key of the movie/show |
+| `review/` | Static | Namespace for reviews sub-resource |
+| `<int:review_pk>/` | Dynamic | Primary key of the individual review |
+
+---
+
+## Responsibilities of Each Endpoint
+
+### Review List Endpoint (`/stream/<pk>/review/`)
+
+- **GET** — Return all reviews for the movie identified by `<pk>`
+- **POST** *(optional)* — Create a new review for that movie
+
+### Review Detail Endpoint (`/stream/<pk>/review/<review_pk>/`)
+
+- **GET** — Retrieve a single review
+- **PUT/PATCH** — Update the review
+- **DELETE** — Delete the review
+
+---
+
+## Real-World Analogy
+
+Think of how Amazon handles reviews:
+
+```
+/product/B09XYZ/                  → Product detail page
+/product/B09XYZ/reviews/          → All reviews for that product
+/product/B09XYZ/reviews/R1ABC23/  → A single review — view, edit, or delete
+```
+
+Your Django REST Framework API should follow the same structure to keep endpoints logical and predictable.
+
+---
+
+## Key Takeaway
+
+> Nested URLs make your API self-documenting. The URL itself communicates the resource hierarchy — a review belongs to a movie, not to the whole database.
+
+In the next lecture, these URL patterns are wired up using **Concrete View Classes** for clean, minimal view code.

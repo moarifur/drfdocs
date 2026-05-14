@@ -1,0 +1,141 @@
+---
+title: Completion
+description: Project wrap-up — generating requirements.txt, cleaning up imports, and publishing your work
+lecture: "069"
+topic: Project Management
+tags: [django, requirements, deployment, github, cleanup]
+sidebar_position: 1
+---
+
+# Deployment
+---
+## Overview
+
+This lecture covers the final steps for wrapping up a Django REST Framework project: generating a `requirements.txt` file, cleaning up imports in `views.py`, and preparing the project for sharing on GitHub or deploying to a server.
+
+---
+
+## Generating `requirements.txt`
+
+Before sharing or deploying a project, all dependencies and their versions must be recorded in a `requirements.txt` file.
+
+### Command
+
+```bash
+pip freeze > requirements.txt
+```
+
+Run this from inside your project folder with the **virtual environment activated**.
+
+### Example Output (`requirements.txt`)
+
+```
+asgiref==3.7.2
+Django==4.2.3
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.0
+PyJWT==2.8.0
+pytz==2024.1
+sqlparse==0.5.0
+```
+
+Anyone cloning the project can install all dependencies with:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## Deployment Platforms
+
+When deploying a Django project, the hosting environment also needs to know which packages are required:
+
+| Platform | How It Uses `requirements.txt` |
+|---|---|
+| AWS (Elastic Beanstalk) | Auto-installs packages on deploy |
+| Digital Ocean (App Platform) | Reads file during build |
+| Heroku | Reads file and installs during slug compile |
+| Railway / Render | Same auto-install behavior |
+
+---
+
+## Cleaning Up Imports in `views.py`
+
+As projects grow, `views.py` accumulates many individual imports. Instead of importing each class separately, an entire module can be imported and accessed with dot notation.
+
+### Before (verbose)
+
+```python
+from watchlist_app.api.serializers import WatchListSerializer, ReviewSerializer, StreamPlatformSerializer
+from watchlist_app.api.throttling import ReviewListThrottle, ReviewCreateThrottle
+from watchlist_app.api.pagination import WatchListPagination
+```
+
+### After (module-level import)
+
+```python
+from watchlist_app.api import serializers
+from watchlist_app.api import throttling
+from watchlist_app.api import pagination
+```
+
+Then reference classes with dot notation:
+
+```python
+serializer_class = serializers.WatchListSerializer
+throttle_classes = [throttling.ReviewCreateThrottle]
+pagination_class = pagination.WatchListPagination
+```
+
+### When Each Style Makes Sense
+
+| Style | Use When |
+|---|---|
+| Import specific classes | Large module with many classes — you only need a few |
+| Import whole module | Small module where you use most or all classes |
+
+> Importing an entire module when you only need 2 out of 100 classes adds unnecessary load. Import only what you need.
+
+---
+
+## Preparing for GitHub
+
+Before pushing to GitHub, review the following checklist:
+
+```bash
+# Step 1: Remove commented-out code (optional but recommended)
+# Step 2: Add a README.md with:
+#   - Project description
+#   - How to set up and run locally
+#   - API endpoints overview
+# Step 3: Create .gitignore (exclude venv, __pycache__, .env, db.sqlite3)
+# Step 4: Push to your repository
+git add .
+git commit -m "Initial project upload"
+git push origin main
+```
+
+### README Tips
+
+Make your project stand out in your portfolio:
+
+| Recommended Content | Example |
+|---|---|
+| Short description | "A streaming service review API built with Django REST Framework" |
+| Setup instructions | `pip install -r requirements.txt`, `python manage.py migrate` |
+| API overview | List key endpoints with HTTP methods |
+| Demo video | 30–60 second screen recording of Postman or Swagger UI |
+| User flow | "Create user → Create platform → Add movie → Post review" |
+
+---
+
+## Summary
+
+| Task | Command / Action |
+|---|---|
+| Save dependencies | `pip freeze > requirements.txt` |
+| Install from file | `pip install -r requirements.txt` |
+| Clean imports | Use module-level imports + dot notation |
+| Push to GitHub | Add README, `.gitignore`, then `git push` |
+| Deploy | Include `requirements.txt` — all platforms read it automatically |

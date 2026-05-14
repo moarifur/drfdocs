@@ -1,0 +1,117 @@
+---
+title: TokenLogin
+description: Creating a login endpoint for token authentication using DRF's built-in obtain_auth_token view
+sidebar_position: 8
+---
+
+# TokenLogin
+---
+
+## Goal
+
+Create a `/account/login/` endpoint that accepts a username and password, and returns the user's authentication token.
+
+---
+
+## Project Structure
+
+Create a separate `user_app` for all account-related logic:
+
+```bash
+python manage.py startapp user_app
+```
+
+Inside `user_app/`, create an `api/` folder with three files:
+
+```
+user_app/
+└── api/
+    ├── urls.py
+    ├── views.py
+    └── serializers.py
+```
+
+Register the app in `settings.py`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'user_app',
+]
+```
+
+---
+
+## Login URL — Using DRF's Built-In View
+
+DRF ships with `obtain_auth_token` — a view that accepts `username` and `password` via POST and returns the token. There is no need to write a custom view for this.
+
+`user_app/api/urls.py`:
+
+```python
+from django.urls import path
+from rest_framework.authtoken.views import obtain_auth_token
+
+urlpatterns = [
+    path('login/', obtain_auth_token, name='login'),
+]
+```
+
+Include this in the main `urls.py`:
+
+```python
+path('account/', include('user_app.api.urls')),
+```
+
+---
+
+## How to Use in Postman
+
+Send a `POST` request to `/account/login/`:
+
+- **Body** → form-data
+- `username`: your username
+- `password`: your password
+
+**Successful response:**
+
+```json
+{
+  "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
+}
+```
+
+> Use `username`, not `email`. By default, Django authenticates by username.
+
+---
+
+## Carrying the Token
+
+After obtaining the token, include it in every subsequent request:
+
+- **Headers** → `Authorization`: `Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b`
+
+---
+
+## Same Token on Repeated Login
+
+`obtain_auth_token` does **not** regenerate the token on each login. Once a token is created for a user, the same token is returned every time they log in — until it is deleted (logout).
+
+This means:
+
+- The token is stable and can be stored safely on the client
+- To force a new token, the old one must be deleted first (handled by the logout endpoint)
+
+---
+
+## Verifying a Wrong Password
+
+If incorrect credentials are submitted, DRF returns:
+
+```json
+{
+  "non_field_errors": ["Unable to log in with provided credentials."]
+}
+```
+
+No token is returned. The client must prompt the user to try again.

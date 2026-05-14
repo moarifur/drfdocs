@@ -1,0 +1,161 @@
+---
+title: Testing
+description: Manual end-to-end testing of the entire IMDB clone API using Postman
+sidebar_position: 11
+---
+
+# Testing
+---
+
+## Project Architecture Recap
+
+Full end-to-end Postman walkthrough of the entire project. Before testing, here is the full data and permission model:
+
+```
+StreamPlatform  ←── Admin only (add/edit/delete)
+      │
+   WatchList    ←── Admin only (add/edit/delete); anyone can read
+      │
+   Review       ←── Any authenticated user can create (one per movie)
+                    Only the review author or admin can edit/delete
+```
+
+Users are registered freely. Once registered, they can review any movie once.
+
+---
+
+## Permission Summary
+
+| Resource | Create | Read | Update | Delete |
+|----------|--------|------|--------|--------|
+| StreamPlatform | Admin | Anyone | Admin | Admin |
+| WatchList | Admin | Anyone | Admin | Admin |
+| Review | Authenticated user | Anyone | Author or Admin | Author or Admin |
+
+---
+
+## Step 1 — Admin Login
+
+Log in as admin via Postman:
+
+- `POST /account/login/` with admin credentials
+- Copy the returned token
+- Use it in subsequent headers: `Authorization: Token <token>`
+
+---
+
+## Step 2 — Add Streaming Platforms
+
+`POST /watch/stream/` with admin token:
+
+```json
+{
+  "name": "Netflix",
+  "about": "Number one streaming platform",
+  "website": "https://netflix.com"
+}
+```
+
+Repeat for Prime Video, Disney+, Hotstar, etc.
+
+---
+
+## Step 3 — Add Movies/Shows
+
+`POST /watch/list/` with admin token:
+
+```json
+{
+  "title": "The Boy",
+  "storyline": "A boy grows up in the USA",
+  "platform": 10,
+  "active": true
+}
+```
+
+`platform` is the ID of the streaming platform created in Step 2.
+
+---
+
+## Step 4 — Register a New User
+
+`POST /account/register/` (no token needed):
+
+- Body → form-data: `username`, `email`, `password`, `password2`
+- Response includes a token — store it
+
+---
+
+## Step 5 — Verify Normal User Restrictions
+
+Try `POST /watch/list/` with the normal user's token:
+
+```
+403 Forbidden — You do not have permission to perform this action.
+```
+
+Normal users cannot create movies or streaming platforms — only admin can.
+
+---
+
+## Step 6 — Add Reviews as Normal User
+
+`POST /watch/<movie_id>/review-create/` with normal user token:
+
+```json
+{
+  "rating": 5,
+  "description": "Great movie!",
+  "active": true
+}
+```
+
+Attempting to review the same movie twice returns:
+
+```
+400 Bad Request — You have already reviewed this movie.
+```
+
+---
+
+## Step 7 — Test Cross-User Editing
+
+Try to `PUT` another user's review using a different token:
+
+```
+403 Forbidden — You do not have permission to perform this action.
+```
+
+Only the review author or admin can edit.
+
+---
+
+## Step 8 — Admin Override
+
+Log in as admin, then `PUT` any review with the admin token — succeeds regardless of who created it.
+
+---
+
+## Step 9 — Logout
+
+`POST /account/logout/` with token:
+
+- Returns `200 OK`
+- Token deleted from database
+- All subsequent requests with that token return `401 Unauthorized`
+
+---
+
+## Quick Endpoint Reference
+
+| Action | Method | URL |
+|--------|--------|-----|
+| Login | POST | `/account/login/` |
+| Register | POST | `/account/register/` |
+| Logout | POST | `/account/logout/` |
+| List movies | GET | `/watch/list/` |
+| Add movie | POST | `/watch/list/` |
+| Add stream platform | POST | `/watch/stream/` |
+| List reviews | GET | `/watch/<id>/reviews/` |
+| Create review | POST | `/watch/<id>/review-create/` |
+| Edit review | PUT | `/watch/review/<id>/` |

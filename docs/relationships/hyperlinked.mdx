@@ -1,0 +1,139 @@
+---
+title: "Hyperlinked"
+description: "Using HyperlinkedModelSerializer in Django REST Framework to represent object relationships as URLs instead of primary keys."
+topic: "Django REST Framework"
+lecture: 25
+tags: ["django", "drf", "serializers", "hyperlinked", "url"]
+sidebar_position: 4
+---
+
+# Hyperlinked Model Serializer
+---
+
+HyperlinkedModelSerializer is a layer of abstraction over the default serializer that allows to quickly create a serializer for a model in Django. Django REST Framework is a wrapper over default Django Framework, basically used to create APIs of various kinds.
+`HyperlinkedModelSerializer` is a drop-in replacement for `ModelSerializer`. The only difference is that instead of using primary keys (integers) to represent related objects, it uses **hyperlinks (URLs)**.
+
+---
+
+## ModelSerializer vs HyperlinkedModelSerializer
+
+| Feature                     | `ModelSerializer`           | `HyperlinkedModelSerializer`     |
+|-----------------------------|-----------------------------|----------------------------------|
+| Represents identity as      | Primary key (integer ID)    | URL (hyperlink)                  |
+| Default identity field name | `id`                        | `url`                            |
+| Requires request context    | No                          | **Yes**                          |
+| Relationship representation | PK integers                 | URLs to related endpoints        |
+
+> **Official definition:** `HyperlinkedModelSerializer` is similar to `ModelSerializer` except that it uses hyperlinks to represent relationships rather than primary keys.
+
+---
+
+## Switching to HyperlinkedModelSerializer
+
+### Step 1 — Update the Serializer
+
+```python
+# serializer.py
+from rest_framework import serializers
+from .models import StreamPlatform, WatchList
+
+
+class WatchListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = WatchList
+        fields = '__all__'
+
+
+class StreamPlatformSerializer(serializers.HyperlinkedModelSerializer):
+    watchlist = WatchListSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = StreamPlatform
+        fields = '__all__'
+```
+
+### Step 2 — Pass Request Context in Views
+
+`HyperlinkedModelSerializer` needs the `request` object to build absolute URLs. Add `context={'request': request}` wherever the serializer is instantiated.
+
+```python
+# views.py — List view
+class StreamPlatformList(APIView):
+    def get(self, request):
+        platforms  = StreamPlatform.objects.all()
+        serializer = StreamPlatformSerializer(
+            platforms,
+            many=True,
+            context={'request': request}
+        )
+        return Response(serializer.data)
+
+# views.py — Detail view
+class StreamPlatformDetail(APIView):
+    def get(self, request, pk):
+        platform   = get_object_or_404(StreamPlatform, pk=pk)
+        serializer = StreamPlatformSerializer(
+            platform,
+            context={'request': request}
+        )
+        return Response(serializer.data)
+```
+
+> **Note:** Forgetting `context={'request': request}` in the detail view raises an `AssertionError` — the serializer needs the request to build the `url` field.
+
+---
+
+## Sample Response
+
+With `HyperlinkedModelSerializer`, each platform object now includes a `url` field:
+
+```json
+[
+  {
+    "url": "http://127.0.0.1:8000/stream/1/",
+    "name": "Netflix",
+    "about": "...",
+    "website": "https://netflix.com",
+    "watchlist": [ ... ]
+  }
+]
+```
+
+---
+
+## HyperlinkedIdentityField
+
+If you only need a URL for a specific field (not the whole object), use `HyperlinkedIdentityField`:
+
+```python
+class WatchListSerializer(serializers.ModelSerializer):
+    platform_url = serializers.HyperlinkedIdentityField(
+        view_name='stream-detail'
+    )
+
+    class Meta:
+        model  = WatchList
+        fields = '__all__'
+```
+
+This field produces a direct URL to the object's detail endpoint, independent of the full `HyperlinkedModelSerializer`.
+
+---
+
+## When to Use Each
+
+| Scenario                                              | Recommended approach                        |
+|-------------------------------------------------------|---------------------------------------------|
+| Simple APIs where IDs are sufficient                  | `ModelSerializer`                           |
+| Browsable, navigable (HATEOAS-style) APIs             | `HyperlinkedModelSerializer`                |
+| Only one specific field should become a URL           | `HyperlinkedIdentityField`                  |
+| Related objects should appear as URLs in a list field | `HyperlinkedRelatedField`                   |
+
+---
+
+## Key Takeaways
+
+- `HyperlinkedModelSerializer` replaces integer PKs with URLs throughout the serializer output.
+- Always supply `context={'request': request}` at the point of serializer instantiation — both in list and detail views.
+- Use `HyperlinkedIdentityField` when you need a URL only for one particular field.
+- For most projects, `ModelSerializer` with integer IDs is simpler; use the hyperlinked variant when building browsable, self-describing APIs.

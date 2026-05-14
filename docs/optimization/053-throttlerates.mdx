@@ -1,0 +1,106 @@
+---
+title: ThrottleRates
+description: Implementing AnonRateThrottle and UserRateThrottle globally and per-view in Django REST Framework
+lesson: 53
+topic: Throttle Rate — Anon and User
+sidebar_position: 2
+---
+
+# ThrottleRates
+---
+## Overview
+
+This lesson covers how to implement the two most common DRF throttle classes — `AnonRateThrottle` and `UserRateThrottle` — at both the **global** and **per-view** levels, with live testing via Postman.
+
+---
+
+## Global Throttle Configuration
+
+Add throttle settings to `REST_FRAMEWORK` in `settings.py`. This applies the limit to **every** view in the project:
+
+```python
+# settings.py
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '1/day',    # Anonymous users: 1 request per day
+        'user': '3/day',    # Registered users: 3 requests per day
+    }
+}
+```
+
+> **Important:** Global rates are shared across all views. If a user makes 3 requests to `/stream/`, they cannot make any more requests to `/review/` or any other endpoint for the rest of the period.
+
+---
+
+## Testing Global Throttle
+
+1. Send a request without authorization — succeeds on the first attempt.
+2. Send the same request again — returns HTTP `429 Too Many Requests`.
+
+```json
+{
+  "detail": "Request was throttled. Expected available in 86399 seconds."
+}
+```
+
+The HTTP status code `429 Too Many Requests` is the standard throttle response.
+
+---
+
+## Per-View (Local) Throttle Configuration
+
+To apply throttling only to specific views, comment out the global setting and use `throttle_classes` directly on the view:
+
+```python
+# views.py
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+
+class ReviewList(generics.ListAPIView):
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Review.objects.filter(watchlist=self.kwargs['pk'])
+
+
+class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    serializer_class = ReviewSerializer
+    queryset = Review.objects.all()
+```
+
+---
+
+## Throttle Counting Behaviour
+
+| Scenario | Result |
+|----------|--------|
+| 9 requests to `ReviewList` + 1 to `ReviewDetail` | Throttled — counts are shared |
+| 3 requests to `ReviewList` (limit = 3) | Throttled on 4th request |
+| Remove `throttle_classes` from `WatchListAV` | That view is unrestricted |
+
+> Throttle counts from multiple views that share the same throttle class are **counted together**, not separately per endpoint. This is a common source of confusion.
+
+---
+
+## How to Add Authorization in Postman
+
+To test as an authenticated user:
+
+1. Open the **Headers** tab in Postman.
+2. Add key: `Authorization`
+3. Add value: `Token <your_token_here>`
+
+Authenticated users get the `user` rate limit; unauthenticated users get the `anon` limit.
+
+---
+
+## Key Takeaway
+
+- Use **global throttle** when you want uniform rate limiting across your entire API.
+- Use **per-view throttle** when different endpoints have different requirements (e.g., review creation vs. review reading).
+- Throttle counts are **global per user**, not per-endpoint, when using the same throttle class on multiple views.

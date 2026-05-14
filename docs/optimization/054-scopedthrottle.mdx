@@ -1,0 +1,146 @@
+---
+title: ScopedThrottle
+description: Building custom throttle classes and using scoped throttling to apply different rate limits per view in DRF
+lesson: 54
+topic: Throttle Rate — Custom and Scope
+sidebar_position: 3
+---
+
+# ScopedThrottle
+---
+## Overview
+
+When you need **different rate limits for different views**, DRF's `ScopedRateThrottle` is the solution. Rather than using the same `anon`/`user` buckets for all views, you define named scopes and assign each view its own quota.
+
+---
+
+## Approach 1 — Custom Throttle Class File
+
+Create a `throttling.py` file inside your app to house custom throttle classes:
+
+```python
+# watchlist_app/api/throttling.py
+from rest_framework.throttling import UserRateThrottle
+
+class ReviewCreateThrottle(UserRateThrottle):
+    scope = 'review_create'
+
+class ReviewListThrottle(UserRateThrottle):
+    scope = 'review_list'
+```
+
+Then register the scope rates in `settings.py`:
+
+```python
+# settings.py
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_RATES': {
+        'review_create': '1/day',   # Can only POST 1 review per day
+        'review_list':   '10/day',  # Can GET review list 10 times per day
+    }
+}
+```
+
+Apply these classes on the relevant views:
+
+```python
+# views.py
+from watchlist_app.api.throttling import ReviewCreateThrottle, ReviewListThrottle
+
+class ReviewCreate(generics.CreateAPIView):
+    throttle_classes = [ReviewCreateThrottle]
+    ...
+
+class ReviewList(generics.ListAPIView):
+    throttle_classes = [ReviewListThrottle]
+    ...
+```
+
+---
+
+## Approach 2 — Inline ScopedRateThrottle
+
+For a one-off scope on a single view, use `ScopedRateThrottle` directly without creating a separate file:
+
+```python
+# views.py
+from rest_framework.throttling import ScopedRateThrottle
+
+class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'review_detail'
+    serializer_class = ReviewSerializer
+    queryset = Review.objects.all()
+```
+
+Register the scope in `settings.py`:
+
+```python
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_RATES': {
+        'review_detail': '2/day',
+    }
+}
+```
+
+---
+
+## Combining Multiple Scopes
+
+You can combine `ScopedRateThrottle` on multiple views with the same scope name — their request counts are **pooled together**:
+
+```python
+class ReviewList(generics.ListAPIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'review_detail'   # same scope as ReviewDetail
+
+class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'review_detail'
+```
+
+> Requests to **both** `ReviewList` and `ReviewDetail` now count against the same `review_detail` bucket.
+
+---
+
+## Comparison of Throttle Approaches
+
+| Approach | Best For | Flexibility |
+|----------|----------|-------------|
+| `AnonRateThrottle` / `UserRateThrottle` | Simple global limits | Low |
+| Custom class (`ReviewCreateThrottle`) | Named per-view limits in a dedicated file | Medium |
+| `ScopedRateThrottle` inline | Quick per-view scope without a separate file | High |
+
+---
+
+## Common Use Cases
+
+| Scenario | Recommended Scope/Limit |
+|----------|------------------------|
+| Review creation (POST) | `1/day` — one review per movie per day |
+| Review listing (GET) | `10/day` — more generous read access |
+| Review detail (GET/PUT/DELETE) | `2/day` — limited update access |
+| Selling free-tier API | `5/day` anonymous, then prompt registration |
+
+---
+
+## Multiple Throttle Classes Together
+
+You can stack multiple throttle classes on one view for compound limits:
+
+```python
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_RATES': {
+        'burst':     '10/minute',
+        'sustained': '1000/day',
+    }
+}
+```
+
+This allows 10 requests per minute but caps at 1000 per day — useful for APIs that allow short bursts but enforce a daily ceiling.
+
+---
+
+## Key Takeaway
+
+Use `ScopedRateThrottle` when different endpoints in your API need different rate limits. It gives you granular control without duplicating throttle infrastructure. Scopes with the same name share a request pool, which is a powerful way to group related views under one budget.

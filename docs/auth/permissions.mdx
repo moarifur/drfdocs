@@ -1,0 +1,105 @@
+---
+title: Permissions
+description: Introduction to DRF permissions — global vs object-level, and built-in permission classes
+sidebar_position: 2
+---
+
+# Permissions
+---
+## What Are Permissions?
+
+Permissions let you **restrict access** to your API endpoints. Real-world examples:
+
+- Amazon requires you to log in to view your orders
+- Medium restricts full blog post access to logged-in users
+- An admin dashboard should only be accessible to staff accounts
+
+DRF handles all of this through permission classes.
+
+---
+
+## Two Levels of Permission
+
+| Level | How to Apply | Scope |
+|-------|-------------|-------|
+| **Global** | Via `REST_FRAMEWORK` in `settings.py` | Applied to every view across the entire project |
+| **Object-level** | Via `permission_classes` attribute on a view class | Applied to a specific view only |
+
+---
+
+## Built-In Permission Classes
+
+| Class | Behavior |
+|-------|----------|
+| `AllowAny` | No restriction — anyone can access |
+| `IsAuthenticated` | Only logged-in users can access |
+| `IsAdminUser` | Only admin users can access |
+| `IsAuthenticatedOrReadOnly` | Logged-in users can read/write; anonymous users can read only |
+
+---
+
+## Global Permission (via settings.py)
+
+```python
+# settings.py
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}
+```
+
+With `IsAuthenticated` set globally, every endpoint in the project requires the user to be logged in. Accessing any endpoint while logged out returns:
+
+```
+401 Unauthorized — Authentication credentials were not provided.
+```
+
+> **Important:** Never repeat the `REST_FRAMEWORK` dictionary in `settings.py`. Always add new settings as additional keys inside the same dictionary — otherwise the second one silently overwrites the first.
+
+---
+
+## Object-Level Permission (per view)
+
+For Class-Based Views, use the `permission_classes` attribute:
+
+```python
+from rest_framework.permissions import IsAuthenticated
+
+class ReviewList(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    ...
+```
+
+For Function-Based Views, use the `@permission_classes` decorator:
+
+```python
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def review_list(request):
+    ...
+```
+
+---
+
+## IsAuthenticatedOrReadOnly in Practice
+
+```python
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
+class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    ...
+```
+
+- Anonymous users → GET only (no form shown in browsable API)
+- Logged-in users → GET, PUT, DELETE available
+
+---
+
+## When to Use Each Level
+
+Use **global** permission when a single rule applies everywhere (e.g. all endpoints require login). Use **object-level** permission when different endpoints have different rules — which is almost always the case for real projects.

@@ -1,0 +1,115 @@
+---
+title: Token
+description: How token authentication works in DRF — the concept, setup, and token lifecycle
+sidebar_position: 7
+---
+
+# Token concept
+---
+
+## The Core Concept
+
+Token authentication replaces sending credentials with every request. Instead:
+
+1. The user logs in once with username + password
+2. The server verifies the credentials and returns a **token**
+3. The client stores this token and sends it with every subsequent request
+4. The server verifies the token against the database to identify the user
+
+Think of it like a parking receipt: you hand over your ticket and they return your car — you do not have to re-prove your identity each time.
+
+---
+
+## Token Lifecycle
+
+```
+User registers → Token generated and stored in DB
+        ↓
+User logs in   → Token returned to client
+        ↓
+Client carries Token in header with every request
+        ↓
+Server verifies Token against DB → request allowed or denied
+        ↓
+User logs out  → Token deleted from DB
+        ↓
+User must log in again to receive a new token
+```
+
+---
+
+## Configuration
+
+### Step 1 — Update settings.py
+
+```python
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
+```
+
+### Step 2 — Add the token app
+
+```python
+INSTALLED_APPS = [
+    ...
+    'rest_framework.authtoken',   # creates the Token table in the database
+]
+```
+
+### Step 3 — Migrate
+
+```bash
+python manage.py migrate
+```
+
+This creates a `authtoken_token` table that stores one token per user.
+
+---
+
+## Sending a Token in Postman
+
+In the request **Headers**:
+
+| Key | Value |
+|-----|-------|
+| `Authorization` | `Token <your_token_here>` |
+
+Note the keyword `Token` (not `Basic`, not `Bearer`) — this is specific to DRF's token authentication.
+
+---
+
+## How Tokens Are Verified
+
+When a request arrives, DRF:
+1. Reads the `Authorization` header
+2. Extracts the token string
+3. Queries the database for a matching token
+4. If found, sets `request.user` to the associated user
+
+This is why token authentication has **one extra database query per request** — a trade-off that is acceptable for most projects but worth understanding.
+
+---
+
+## Token Table
+
+After running migrations, visit the admin panel. You will see a new **Tokens** section under the authentication group. From here, you can:
+- Manually generate tokens for existing users
+- View which token belongs to which user
+- Delete tokens to force a re-login
+
+For new users (created via the registration API), tokens should be generated automatically — covered in the next lecture.
+
+---
+
+## Token vs Basic Authentication
+
+| Feature | Basic Auth | Token Auth |
+|---------|-----------|-----------|
+| Credentials sent per request | Yes (every time) | No (only at login) |
+| Stored in database | No | Yes |
+| Works well with mobile apps | Poor | Yes |
+| Revocable | N/A | Yes (delete from DB) |
+| Production-ready | No | Yes |

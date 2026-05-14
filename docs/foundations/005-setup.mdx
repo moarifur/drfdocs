@@ -1,0 +1,111 @@
+---
+title: Setup
+description: Basic Django project setup — virtual environments, installing Django, and configuring VS Code
+lecture: "005"
+topic: Basic Django Setup
+tags: [django, setup, virtualenv, python, vscode]
+sidebar_position: 5
+---
+
+# Setup
+---
+
+## Section Goals
+
+This section covers:
+
+1. Django basics refresher and project foundation
+2. Project folder structure and editor configuration
+
+---
+
+## Virtual Environment
+
+A **virtual environment** is an isolated Python environment for a specific project. It prevents package conflicts between projects.
+
+### Why Use One?
+
+| Without Virtual Env | With Virtual Env |
+|---|---|
+| All projects share system packages | Each project has its own isolated packages |
+| Version conflicts possible | Clean, project-specific dependencies |
+| Harder to manage deployment | Easy to export with `pip freeze` |
+
+### Create and Activate
+
+```bash
+# Create virtual environment
+python -m venv myvenv
+
+# Activate (Windows)
+myvenv\Scripts\activate
+
+# Activate (Linux / Mac)
+source myvenv/bin/activate
+
+# Verify it's active — should show no packages
+pip freeze
+```
+
+> The virtual environment folder should live **outside** your Django project folder.
+
+---
+
+## Install Django
+
+```bash
+# Install latest Django
+pip install django
+
+# Verify installed packages
+pip freeze
+# Output includes: Django, sqlparse, asgiref, etc.
+```
+
+> Use Django **3.x or later** (LTS versions preferred for production).
+
+---
+
+## Project Folder Structure
+
+```
+TRF-Project/               ← Root project folder
+├── myvenv/                ← Virtual environment (do NOT touch)
+└── watchmate/             ← Django project root
+    ├── watchmate/         ← Main config folder (settings, urls)
+    │   ├── settings.py
+    │   ├── urls.py
+    │   └── wsgi.py
+    └── manage.py
+```
+
+---
+
+## VS Code Setup
+
+1. Install **Visual Studio Code**
+2. Open your project folder: `File → Open Folder → watchmate/`
+3. Install extensions:
+
+| Extension | Purpose |
+|---|---|
+| **Python** (Microsoft) | Syntax highlighting, IntelliSense, linting |
+| **Tab Nine** | AI-powered autocompletion |
+
+> After installing extensions, **reload VS Code** to activate them.
+
+---
+
+## Summary
+
+```bash
+# Full setup sequence
+python -m venv myvenv          # Create virtual env
+myvenv\Scripts\activate        # Activate it
+pip install django             # Install Django
+django-admin startproject watchmate  # Create project
+cd watchmate
+python manage.py runserver     # Test the server
+```
+
+Visit `http://127.0.0.1:8000/` — you should see the Django welcome page.

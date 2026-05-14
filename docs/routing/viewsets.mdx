@@ -1,0 +1,173 @@
+---
+title: ViewSets
+description: Combining list and detail logic with ViewSets and Routers to reduce URL and view boilerplate
+topic: ViewSets and Routers
+lecture: "031"
+tags: [django-rest-framework, viewsets, routers, url-routing, class-based-views]
+sidebar_position: 4
+---
+
+# ViewSets and Routers
+---
+
+## Overview
+
+**ViewSets** combine the logic for **list** and **detail** endpoints into a single class. Paired with a **Router**, they eliminate the need to define separate URL patterns — the router generates them automatically.
+
+> Best suited for simple CRUD requirements. For complex custom logic (filtering, permissions, nested relationships), stick with Generic Views.
+
+---
+
+## Evolution of Django REST Views
+
+| Approach | Boilerplate | Flexibility |
+|---|---|---|
+| Function-Based Views | Very High | Maximum |
+| Class-Based Views | High | High |
+| Mixins + GenericAPIView | Medium | High |
+| Concrete View Classes | Low | Good |
+| **ViewSets + Routers** | **Lowest** | **Simple use cases** |
+
+---
+
+## ViewSet vs. Two Separate Views
+
+### Without ViewSets (two views + two URLs)
+
+```python
+# views.py
+class StreamPlatformList(generics.ListCreateAPIView):
+    queryset = StreamPlatform.objects.all()
+    serializer_class = StreamPlatformSerializer
+
+class StreamPlatformDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = StreamPlatform.objects.all()
+    serializer_class = StreamPlatformSerializer
+```
+
+```python
+# urls.py
+urlpatterns = [
+    path('stream/', views.StreamPlatformList.as_view()),
+    path('stream/<int:pk>/', views.StreamPlatformDetail.as_view()),
+]
+```
+
+### With ViewSets (one class + router)
+
+```python
+# views.py
+from rest_framework import viewsets
+
+class StreamPlatformVS(viewsets.ViewSet):
+    def list(self, request):
+        queryset = StreamPlatform.objects.all()
+        serializer = StreamPlatformSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        queryset = StreamPlatform.objects.all()
+        platform = get_object_or_404(queryset, pk=pk)
+        serializer = StreamPlatformSerializer(platform)
+        return Response(serializer.data)
+```
+
+```python
+# urls.py
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register('stream', views.StreamPlatformVS, basename='streamplatform')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+```
+
+---
+
+## ViewSet Methods
+
+A `ViewSet` supports these built-in action names:
+
+| Method Name | HTTP Verb | URL Pattern |
+|---|---|---|
+| `list` | GET | `/stream/` |
+| `create` | POST | `/stream/` |
+| `retrieve` | GET | `/stream/<pk>/` |
+| `update` | PUT | `/stream/<pk>/` |
+| `partial_update` | PATCH | `/stream/<pk>/` |
+| `destroy` | DELETE | `/stream/<pk>/` |
+
+You only need to define the methods you want to expose.
+
+---
+
+## Setting Up the Router
+
+```python
+# urls.py
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from watchlist_app import views
+
+router = DefaultRouter()
+router.register('stream', views.StreamPlatformVS, basename='streamplatform')
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+```
+
+The router automatically creates:
+- `stream/` → maps to `list` and `create`
+- `stream/<pk>/` → maps to `retrieve`, `update`, `partial_update`, `destroy`
+
+---
+
+## Common Naming Conflict Error
+
+A frequent mistake is naming your ViewSet class the same as your model:
+
+```python
+# models.py
+class StreamPlatform(models.Model): ...   # model name
+
+# views.py
+class StreamPlatform(viewsets.ViewSet):   # ← CONFLICTS with model import!
+    queryset = StreamPlatform.objects.all()  # circular reference error
+```
+
+**Fix:** Use a distinct name for the ViewSet class.
+
+```python
+class StreamPlatformVS(viewsets.ViewSet):   # VS suffix avoids collision
+    queryset = StreamPlatform.objects.all()
+```
+
+---
+
+## Required Import for `get_object_or_404`
+
+When using a plain `ViewSet` (not `ModelViewSet`), Django's shortcut must be imported manually:
+
+```python
+from django.shortcuts import get_object_or_404
+```
+
+---
+
+## When to Use ViewSets
+
+| Scenario | Recommendation |
+|---|---|
+| Simple list + detail with no custom logic | ✅ Use ViewSets + Routers |
+| Nested resources (reviews under movies) | ❌ Use Generic Views |
+| Custom filtering, permissions, or signals | ❌ Use Generic Views |
+| Multiple models with similar CRUD patterns | ✅ ViewSets + Routers scale well |
+
+---
+
+## Key Takeaway
+
+> ViewSets and Routers reduce URL configuration and class count for straightforward CRUD. They shine in large projects with many similar resources. For anything requiring custom `get_queryset` or `perform_create` logic, Generic Views offer more control with less friction.

@@ -1,0 +1,136 @@
+---
+title: BrowsableAPI
+description: Disabling the DRF Browsable API and returning pure JSON responses — and when to use each approach
+lesson: 61
+topic: Browsable API Update
+sidebar_position: 10
+---
+
+# Browsable API
+
+## Overview
+
+Django REST Framework's **Browsable API** is a web-based HTML interface for exploring and testing your API endpoints directly in a browser. While excellent for development, it should be disabled in production — real clients receive raw JSON, not an HTML page.
+
+---
+
+## What the Browsable API Is
+
+When you visit a DRF endpoint in a browser without any settings changes, you see a styled HTML page with:
+
+- Rendered response data
+- Forms to send GET/POST/PUT/DELETE requests
+- Filtering and ordering controls
+- Auth login/logout buttons
+
+This is powered by the `BrowsableAPIRenderer`.
+
+---
+
+## Why Disable It in Production
+
+Professional public APIs (CoinMarketCap, OpenWeatherMap, etc.) return pure JSON — not HTML. Leaving the Browsable API enabled on a deployed server:
+
+- Exposes your API structure to anyone who visits the URL
+- Uses unnecessary resources to render HTML
+- Can confuse frontend developers expecting JSON
+
+---
+
+## How to Disable — Global Setting
+
+Add the `DEFAULT_RENDERER_CLASSES` setting to `REST_FRAMEWORK` in `settings.py`:
+
+```python
+# settings.py
+REST_FRAMEWORK = {
+    # ... other settings ...
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ]
+}
+```
+
+After this change, all endpoints return JSON — the Browsable API is gone.
+
+---
+
+## Development vs Production
+
+Use different settings for each environment:
+
+```python
+# settings.py
+import os
+
+if os.environ.get('DJANGO_ENV') == 'production':
+    REST_FRAMEWORK = {
+        'DEFAULT_RENDERER_CLASSES': [
+            'rest_framework.renderers.JSONRenderer',
+        ]
+    }
+else:
+    # Development: keep Browsable API enabled
+    REST_FRAMEWORK = {
+        'DEFAULT_RENDERER_CLASSES': [
+            'rest_framework.renderers.JSONRenderer',
+            'rest_framework.renderers.BrowsableAPIRenderer',  # HTML interface
+        ]
+    }
+```
+
+Alternatively, manage this via separate `settings_dev.py` and `settings_prod.py` files.
+
+---
+
+## How to Disable — Per View
+
+For a single view, set `renderer_classes` directly:
+
+```python
+from rest_framework.renderers import JSONRenderer
+
+class WatchListGV(generics.ListAPIView):
+    renderer_classes = [JSONRenderer]
+    queryset = WatchList.objects.all()
+    serializer_class = WatchListSerializer
+```
+
+---
+
+## JSON Response vs Browsable API Response
+
+| Format | Triggered By | Content-Type |
+|--------|-------------|--------------|
+| JSON | Postman, `curl`, mobile apps, `Accept: application/json` | `application/json` |
+| Browsable API | Browser request (no explicit `Accept` header) | `text/html` |
+
+---
+
+## Renderer Priority
+
+When `DEFAULT_RENDERER_CLASSES` lists both renderers, DRF uses **content negotiation** to pick the right one based on the `Accept` header:
+
+```python
+'DEFAULT_RENDERER_CLASSES': [
+    'rest_framework.renderers.JSONRenderer',
+    'rest_framework.renderers.BrowsableAPIRenderer',
+]
+```
+
+- A browser gets HTML (Browsable API)
+- Postman or a mobile app gets JSON
+
+Remove `BrowsableAPIRenderer` entirely to always return JSON regardless of the `Accept` header.
+
+---
+
+## Why We Used Postman
+
+Postman sends requests with `Accept: application/json` by default, which is why it has been returning JSON responses throughout this course — even when the Browsable API was still enabled. This is the standard behaviour for any HTTP client that is not a browser.
+
+---
+
+## Key Takeaway
+
+The Browsable API is a development tool — keep it enabled locally for convenient testing, but disable it before deploying. Setting `DEFAULT_RENDERER_CLASSES` to only `JSONRenderer` ensures all clients receive clean JSON responses, consistent with how professional APIs behave.

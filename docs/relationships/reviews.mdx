@@ -1,0 +1,178 @@
+---
+title: "Reviews"
+description: "Building a Review model with validators, connecting it to WatchList via ForeignKey, and creating a ReviewSerializer with a read-only nested relationship."
+topic: "Django REST Framework"
+lecture: 26
+tags: ["django", "drf", "models", "reviews", "validators", "foreignkey"]
+sidebar_position: 5
+---
+
+# Reviews: A new model
+---
+
+This lecture extends the streaming platform project by adding a **Review** feature. A new model is created, connected to `WatchList` via a `ForeignKey`, and exposed through a dedicated `ReviewSerializer`.
+
+---
+
+## Objective
+
+| Relationship         | Rule                                                    |
+|----------------------|---------------------------------------------------------|
+| Movie ↔ Reviews      | One movie can have many reviews (one-to-many)           |
+| Review ↔ Movie       | Each review belongs to exactly one movie                |
+| Reviews in WatchList | Reviews are shown as read-only inside a WatchList response |
+
+---
+
+## 1. Creating the Review Model
+
+```python
+# models.py
+from django.db import models
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+
+class Review(models.Model):
+    rating      = models.PositiveIntegerField(
+                      validators=[MinValueValidator(1), MaxValueValidator(5)]
+                  )
+    description = models.CharField(max_length=200, null=True)
+    watchlist   = models.ForeignKey(
+                      WatchList,
+                      on_delete=models.CASCADE,
+                      related_name="reviews"
+                  )
+    active      = models.BooleanField(default=True)
+    created     = models.DateTimeField(auto_now_add=True)
+    updated     = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.rating} | {self.watchlist.title}"
+```
+
+---
+
+## Review Model Fields Explained
+
+| Field         | Type                    | Purpose                                              |
+|---------------|-------------------------|------------------------------------------------------|
+| `rating`      | `PositiveIntegerField`  | Star rating from 1 to 5 (enforced by validators)    |
+| `description` | `CharField`             | Free-text review body (nullable)                    |
+| `watchlist`   | `ForeignKey`            | Links each review to one movie                      |
+| `active`      | `BooleanField`          | Soft-disable fake or spam reviews (default `True`)  |
+| `created`     | `DateTimeField`         | Auto-set once at creation (`auto_now_add=True`)     |
+| `updated`     | `DateTimeField`         | Auto-updated on every save (`auto_now=True`)        |
+
+---
+
+## 2. Validators
+
+Django validators constrain field values without writing custom `clean()` methods.
+
+```python
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+rating = models.PositiveIntegerField(
+    validators=[
+        MinValueValidator(1),   # minimum allowed value
+        MaxValueValidator(5)    # maximum allowed value
+    ]
+)
+```
+
+Attempting to save a rating of `0` or `6` will raise a `ValidationError`.
+
+---
+
+## 3. Running Migrations
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+python manage.py runserver
+```
+
+---
+
+## 4. Registering in Admin
+
+```python
+# admin.py
+from django.contrib import admin
+from .models import StreamPlatform, WatchList, Review
+
+admin.site.register(StreamPlatform)
+admin.site.register(WatchList)
+admin.site.register(Review)
+```
+
+---
+
+## 5. Creating the ReviewSerializer
+
+```python
+# serializer.py
+from .models import StreamPlatform, WatchList, Review
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Review
+        fields = '__all__'
+```
+
+---
+
+## 6. Connecting Reviews to WatchList (Nested Read-Only)
+
+Add `reviews` as a nested read-only field inside `WatchListSerializer`:
+
+```python
+class WatchListSerializer(serializers.ModelSerializer):
+    # "reviews" matches the related_name on Review.watchlist ForeignKey
+    reviews = ReviewSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = WatchList
+        fields = '__all__'
+```
+
+### Why `read_only=True`?
+
+When a client sends a POST request to create a new movie, it should not be required to supply reviews. The `read_only=True` flag means:
+
+- **GET** — reviews are included in the response automatically.
+- **POST / PUT** — reviews are ignored in the request body; they are added separately via the Review endpoint.
+
+---
+
+## 7. Relationship Flow
+
+```
+StreamPlatform  (1)
+       │
+       │  ForeignKey (related_name="watchlist")
+       ▼
+   WatchList   (many)
+       │
+       │  ForeignKey (related_name="reviews")
+       ▼
+    Review     (many)
+```
+
+---
+
+## 8. Sample Admin Workflow
+
+1. Go to `/admin/` → **Reviews** → **Add Review**.
+2. Select a **Rating** (1–5), enter a **Description**, and choose the **WatchList** (movie) to review.
+3. Save. The review now appears in the `reviews` array when you GET that movie.
+
+---
+
+## Key Takeaways
+
+- Use `MinValueValidator` / `MaxValueValidator` to enforce numeric ranges directly on model fields.
+- `auto_now_add=True` captures creation time once; `auto_now=True` updates on every save.
+- `related_name="reviews"` enables reverse-access from a `WatchList` instance to all its reviews.
+- Set `read_only=True` on nested review fields in `WatchListSerializer` to prevent accidental writes via the movie endpoint.

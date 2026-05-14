@@ -1,0 +1,146 @@
+---
+title: "Relations"
+description: "Exploring DRF serializer relation fields — StringRelatedField, PrimaryKeyRelatedField, and HyperlinkedRelatedField — and when to use each."
+topic: "Django REST Framework"
+lecture: 24
+tags: ["django", "drf", "serializers", "relations", "hyperlink"]
+sidebar_position: 3
+---
+
+# Relations
+---
+
+DRF provides several **relational field types** that control how related objects are represented in serializer output. Instead of always embedding the full nested object, you can return a string label, a primary key, or a hyperlink.
+
+---
+
+## Why Relation Fields Matter
+
+When you use a full nested serializer as in the previous lecture, the response includes all fields of every related object. Sometimes that is too much data. Relation fields let you choose exactly what is returned for each related object.
+
+| Goal                                 | Field to Use                  |
+|--------------------------------------|-------------------------------|
+| Return the string representation (`__str__`) | `StringRelatedField`  |
+| Return only the primary key (ID)     | `PrimaryKeyRelatedField`      |
+| Return a URL to the related object   | `HyperlinkedRelatedField`     |
+| Return full object data              | Nested serializer             |
+
+---
+
+## 1. StringRelatedField
+
+Returns whatever your model's `__str__` method returns — typically the object's name or title.
+
+```python
+class StreamPlatformSerializer(serializers.ModelSerializer):
+    watchlist = serializers.StringRelatedField(many=True)
+
+    class Meta:
+        model  = StreamPlatform
+        fields = '__all__'
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "Netflix",
+  "watchlist": ["Movie A", "Movie B"]
+}
+```
+
+---
+
+## 2. PrimaryKeyRelatedField
+
+Returns the integer primary key of each related object.
+
+```python
+class StreamPlatformSerializer(serializers.ModelSerializer):
+    watchlist = serializers.PrimaryKeyRelatedField(
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model  = StreamPlatform
+        fields = '__all__'
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "Netflix",
+  "watchlist": [1, 2]
+}
+```
+
+---
+
+## 3. HyperlinkedRelatedField
+
+Returns a clickable URL that points directly to each related object's detail endpoint.
+
+```python
+class StreamPlatformSerializer(serializers.ModelSerializer):
+    watchlist = serializers.HyperlinkedRelatedField(
+        many=True,
+        read_only=True,
+        view_name='watchlist-detail'   # must match the URL name defined in urls.py
+    )
+
+    class Meta:
+        model  = StreamPlatform
+        fields = '__all__'
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "name": "Netflix",
+  "watchlist": [
+    "http://127.0.0.1:8000/watch/1/",
+    "http://127.0.0.1:8000/watch/2/"
+  ]
+}
+```
+
+### Passing Request Context
+
+`HyperlinkedRelatedField` requires the `request` object so it can build absolute URLs. Pass it when instantiating the serializer in your view:
+
+```python
+# views.py
+class StreamPlatformList(APIView):
+    def get(self, request):
+        platforms  = StreamPlatform.objects.all()
+        serializer = StreamPlatformSerializer(
+            platforms,
+            many=True,
+            context={'request': request}   # ← required
+        )
+        return Response(serializer.data)
+```
+
+---
+
+## Comparison Table
+
+| Field                      | Output                        | Requires `request` context? | Writable by default? |
+|----------------------------|-------------------------------|-----------------------------|----------------------|
+| `StringRelatedField`       | `"Movie A"`                   | No                          | No (read-only)       |
+| `PrimaryKeyRelatedField`   | `1`                           | No                          | Yes (with queryset)  |
+| `HyperlinkedRelatedField`  | `"http://…/watch/1/"`         | **Yes**                     | No (read-only)       |
+| Nested serializer          | `{ "id": 1, "title": "…" }`  | No                          | Configurable         |
+
+---
+
+## Key Takeaways
+
+- **`StringRelatedField`** — quickest way to show a human-readable label; delegates to `__str__`.
+- **`PrimaryKeyRelatedField`** — useful when the client only needs IDs to make follow-up requests.
+- **`HyperlinkedRelatedField`** — produces navigable APIs; always pass `request` via context.
+- The **nested serializer** approach (previous lecture) is best when the full object data is needed in one response.
+- All three relation fields accept `many=True` and `read_only=True`.

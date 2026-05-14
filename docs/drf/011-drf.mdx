@@ -1,0 +1,278 @@
+---
+title: DRF
+description: Introduction to Django REST Framework — installation, serialization concepts, serializer types, view types, and API access methods
+lecture: "011"
+topic: DRF Introduction
+tags: [drf, django-rest-framework, serialization, deserialization, installation]
+sidebar_position: 1
+---
+
+# DRF intro
+---
+
+## What Is DRF?
+
+**Django REST Framework (DRF)** is a powerful toolkit for building Web APIs with Django. It handles serialization, validation, authentication, and browsable API interfaces.
+
+---
+
+## Installation
+
+```bash
+pip install djangorestframework
+```
+
+In `watchmate/settings.py`, add to `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'rest_framework',
+]
+```
+
+### Requirements
+
+| Dependency | Minimum Version |
+|---|---|
+| Python | 3.5+ |
+| Django | 2.0+ |
+
+---
+
+## Core Concept: Serialization & Deserialization
+
+### Serialization (Reading: DB → Client)
+
+```
+Database Object (QuerySet)
+    → Python Dictionary (native data type)
+        → JSON Response (sent to client)
+```
+
+### Deserialization (Writing: Client → DB)
+
+```
+JSON Request (from client)
+    → Python Dictionary
+        → Model Instance (saved to database)
+```
+
+> Without DRF, both of these processes must be done **manually** for every field. DRF automates them via **Serializers**.
+
+---
+
+## Serializer Types
+
+DRF provides two main serializer classes:
+
+| Type | Class | Description |
+|---|---|---|
+| **Basic Serializer** | `serializers.Serializer` | Manual field mapping; full control |
+| **Model Serializer** | `serializers.ModelSerializer` | Auto-generates fields from model; less boilerplate |
+
+---
+
+## View Types
+
+| Type | Class | Syntax |
+|---|---|---|
+| **Function-Based View** | `@api_view` decorator | `@api_view(['GET', 'POST'])` |
+| **Class-Based View** | `APIView` class | `class MovieList(APIView):` |
+
+---
+
+## API Access Methods
+
+| Method | Description | Use Case |
+|---|---|---|
+| **Browsable API** | Built-in DRF browser interface | Development / testing |
+| **Postman** | Third-party GUI tool | Professional / production development |
+| **cURL** | Terminal-based HTTP client | Scripting / automation |
+
+> In professional settings, **Postman** is used ~95% of the time.
+
+---
+
+## Learning Path in This Course
+
+```
+Serializer (basic)
+    → Function-Based View
+        → Class-Based View
+
+ModelSerializer
+    → Function-Based View
+        → Class-Based View
+```
+
+This progression ensures you understand each piece before moving to the next abstraction level.
+
+---
+
+## Project Structure Update
+
+Create an `api/` folder inside the app to organize DRF-related files:
+
+```
+watchlist_app/
+├── api/
+│   ├── serializers.py
+│   ├── views.py
+│   └── urls.py
+├── models.py
+└── admin.py
+```
+
+# Understanding DRF Serializers
+---
+If there's one concept that unlocks Django REST Framework, it's the serializer. Everything else — views, routers, authentication — starts making intuitive sense once you understand what a serializer actually does and *why* it exists.
+
+## The Problem Serializers Solve
+
+Your Django model is a Python object living in memory:
+
+```python
+class Product(models.Model):
+    name = models.CharField(max_length=100)
+    price = models.IntegerField()
+```
+
+But when a frontend app or mobile client talks to your API, it speaks JSON:
+
+```json
+{
+  "name": "Laptop",
+  "price": 1200
+}
+```
+
+These two worlds don't speak the same language. Python objects can't be sent over HTTP directly, and raw JSON can't be saved to a database without first being validated and converted. The serializer is the bridge between them.
+
+Think of it as a **customs officer at an airport**: every piece of data passing through gets checked, validated, and formatted before it can enter or exit your system.
+
+## The Big Picture
+
+Serializers sit at the center of the DRF data flow:
+
+```
+Database  ←→  Django Models  ←→  Serializers  ←→  JSON  ←→  Client
+```
+
+They handle four responsibilities at once:
+
+- **Translation** — converting between Python objects and JSON-compatible data
+- **Validation** — ensuring incoming data is correct and complete
+- **Security** — controlling exactly which fields are exposed
+- **Transformation** — shaping data into the format your API contract requires
+## Bidirectional Conversion
+
+Serializers work in both directions. Understanding each direction is key.
+
+### Serialization: Python → JSON
+
+When a client requests data, DRF fetches a model instance from the database and passes it through a serializer to produce a JSON response.
+
+```python
+product = Product.objects.get(id=1)
+serializer = ProductSerializer(product)
+
+print(serializer.data)
+# {"id": 1, "name": "Laptop", "price": 1200}
+```
+
+The model instance goes *in*, clean JSON-ready data comes *out*.
+
+### Deserialization: JSON → Python
+
+When a client sends data (a POST or PUT request), the serializer validates the incoming JSON and, if everything checks out, creates or updates a model instance.
+
+```python
+serializer = ProductSerializer(data=request.data)
+
+if serializer.is_valid():
+    serializer.save()  # Creates a new Product in the database
+```
+
+The serializer validates the payload, builds a Python object, and persists it — all in three lines.
+
+## A Minimal Serializer
+
+Here's what a complete serializer looks like for the `Product` model:
+
+```python
+from rest_framework import serializers
+from .models import Product
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'price']
+```
+
+That's it. This small class automatically gives you:
+
+- JSON ↔ Python conversion
+- Field-level validation
+- `create()` and `update()` logic
+- Control over which fields are exposed to the outside world
+Without a serializer, you'd write all of this by hand — parsing JSON, validating each field, handling missing keys, writing to the database — and you'd repeat it in every view.
+
+## The Serializer Lifecycle
+
+It helps to think of serializers as having two distinct flows depending on which direction data is moving.
+
+**Incoming request (deserialization):**
+
+```
+Client Request
+      ↓
+request.data          ← raw JSON from the client
+      ↓
+Serializer(data=request.data)
+      ↓
+.is_valid()           ← validation runs here
+      ↓
+.validated_data       ← clean, type-coerced Python data
+      ↓
+.save()               ← writes to the database
+```
+
+**Outgoing response (serialization):**
+
+```
+Database Query
+      ↓
+Model Instance
+      ↓
+Serializer(instance)
+      ↓
+.data                 ← JSON-ready dictionary
+      ↓
+Response(serializer.data)
+```
+
+Keeping this flow in mind makes it much easier to debug issues — you always know which direction data is traveling and what state it's in at each step.
+
+## Serializers vs Django Forms
+
+If you've used Django's built-in form system, serializers will feel immediately familiar. The mental model maps almost directly:
+
+| Django Forms | DRF Serializers |
+|---|---|
+| Validates HTML form input | Validates API request data |
+| Bound to `request.POST` | Bound to `request.data` |
+| `.is_valid()` + `.save()` | `.is_valid()` + `.save()` |
+| `.errors` for feedback | `.errors` for feedback |
+
+The main difference is context: forms operate on HTML form submissions, while serializers operate on structured data from any client (browser, mobile app, CLI tool, another service).
+
+## What's Next
+
+Once you're comfortable with basic serializers, the natural next steps are:
+
+- **Nested serializers** — representing related models within a single response
+- **Custom field validation** — adding `validate_<field>` methods for business logic
+- **`SerializerMethodField`** — including computed or derived values
+- **Read vs write fields** — using `read_only` and `write_only` to control what flows in each direction
+Serializers are the foundation everything else builds on. Invest time here and the rest of DRF becomes significantly easier to reason about.

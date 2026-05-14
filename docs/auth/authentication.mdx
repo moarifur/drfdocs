@@ -1,0 +1,54 @@
+---
+title: Authentication
+description: Introduction to DRF authentication — types, how it differs from permissions, and what to expect
+sidebar_position: 5
+---
+
+# Authentication
+---
+## Authentication vs Permissions
+
+These two concepts are often confused. Here is the clear distinction:
+
+| Concept | Role |
+|---------|------|
+| **Authentication** | Proves who the user is — confirms they are a valid, identified user |
+| **Permission** | Decides what that user is allowed to do |
+
+Authentication **never** allows or denies a request by itself. It simply identifies the user so that permission classes can make that decision. From the DRF documentation:
+
+> Authentication by itself won't allow or disallow an incoming request — it simply identifies the credentials that the request was made with.
+
+---
+
+## How Authentication Works
+
+Every incoming request — GET, POST, DELETE, or otherwise — is checked to see if it carries valid credentials. If it does, `request.user` is set to the matching Django user object. If not, `request.user` is set to an anonymous user.
+
+Permission classes then use `request.user` to decide if access is allowed.
+
+---
+
+## Types of Authentication in DRF
+
+| Type | Description | Recommended For |
+|------|-------------|-----------------|
+| **Basic Authentication** | Username + password sent as Base64 in the header | Testing only — not for production |
+| **Token Authentication** | A server-generated token stored in the database, sent with every request | Mobile apps, third-party clients |
+| **JWT Authentication** | Stateless tokens (access + refresh) generated via algorithm, not stored in database | Web apps with JavaScript frontends |
+| **Remote User Authentication** | Delegates auth to the web server | Enterprise/internal tools |
+| **Session Authentication** | Django's built-in session cookies | Browser-based frontends using the same domain |
+
+This course covers **Basic**, **Token**, and **JWT** authentication in depth.
+
+---
+
+## What's Next
+
+The upcoming lectures implement authentication step by step:
+
+1. **Basic Authentication** — quick setup for testing
+2. **Token Authentication** — login, registration, and logout with token management
+3. **JWT Authentication** — access tokens, refresh tokens, and stateless verification
+
+After setting up real authentication, the temporary login URL (`api-auth/`) added earlier will be removed.

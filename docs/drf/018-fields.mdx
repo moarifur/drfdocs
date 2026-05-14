@@ -1,0 +1,126 @@
+---
+title: Fields
+description: Overview of DRF serializer field types and core arguments like read_only, write_only, required, and default
+lecture: "018"
+topic: Serializer Fields and Core Arguments
+tags: [drf, serializers, fields, core-arguments, read-only, write-only]
+sidebar_position: 7
+---
+
+# Serializer Fields
+---
+
+## Core Arguments
+
+Core arguments are keyword arguments you pass to any serializer field to control its behavior.
+
+| Argument | Type | Description |
+|---|---|---|
+| `read_only=True` | `bool` | Client can see this field but cannot write to it |
+| `write_only=True` | `bool` | Client can write this field but it won't appear in responses |
+| `required=True` | `bool` | Field must be present in input (default: `True`) |
+| `default=value` | `any` | Used if field is absent from input |
+| `validators=[...]` | `list` | List of validator functions applied to this field |
+
+### Examples
+
+```python
+class MovieSerializer(serializers.Serializer):
+    id          = serializers.IntegerField(read_only=True)    # auto-generated, not editable
+    name        = serializers.CharField()
+    password    = serializers.CharField(write_only=True)      # hidden from response
+    description = serializers.CharField(required=False, default="No description")
+    active      = serializers.BooleanField(default=True)
+```
+
+---
+
+## Serializer Field Types
+
+### Boolean Fields
+
+| Field | Description |
+|---|---|
+| `BooleanField()` | `True` / `False` |
+| `NullBooleanField()` | `True` / `False` / `None` |
+
+### String Fields
+
+| Field | Description |
+|---|---|
+| `CharField()` | General text |
+| `EmailField()` | Validates email format |
+| `RegexField(regex)` | Matches a regex pattern |
+| `URLField()` | Validates URL format |
+| `SlugField()` | Validates slug format |
+| `IPAddressField()` | Validates IP address |
+
+### Numeric Fields
+
+| Field | Description |
+|---|---|
+| `IntegerField()` | Integer values |
+| `FloatField()` | Float values |
+| `DecimalField(max_digits, decimal_places)` | Precise decimal |
+
+### Date & Time Fields
+
+| Field | Description |
+|---|---|
+| `DateTimeField()` | Full datetime |
+| `DateField()` | Date only |
+| `TimeField()` | Time only |
+| `DurationField()` | Time duration |
+
+### Choice Fields
+
+| Field | Description |
+|---|---|
+| `ChoiceField(choices)` | Single choice from a list |
+| `MultipleChoiceField(choices)` | Multiple choices |
+
+### Special Fields
+
+| Field | Description |
+|---|---|
+| `SerializerMethodField()` | Read-only field based on a method |
+| `HiddenField(default=...)` | Not visible to users, uses a default |
+
+---
+
+## Most Commonly Used Fields
+
+```python
+# These cover ~90% of use cases
+serializers.IntegerField()
+serializers.CharField()
+serializers.BooleanField()
+serializers.EmailField()
+serializers.FloatField()
+serializers.DateTimeField()
+serializers.SerializerMethodField()
+```
+
+---
+
+## When to Use Which Field
+
+| Use Case | Field |
+|---|---|
+| Text | `CharField` |
+| Numbers | `IntegerField` / `FloatField` |
+| Boolean flags | `BooleanField` |
+| Emails | `EmailField` |
+| Web addresses | `URLField` |
+| Computed values | `SerializerMethodField` |
+| Dates | `DateField` / `DateTimeField` |
+
+---
+
+## Documentation Reference
+
+All serializer fields and their arguments are documented at:
+
+```
+https://www.django-rest-framework.org/api-guide/fields/
+```

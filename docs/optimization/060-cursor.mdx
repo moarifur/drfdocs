@@ -1,0 +1,146 @@
+---
+title: Cursor
+description: Implementing CursorPagination in Django REST Framework — opaque cursor-based navigation with ordering
+lesson: 60
+topic: Pagination Part 2 — CursorPagination
+sidebar_position: 9
+---
+
+# CursorPagination
+---
+## Overview
+
+`CursorPagination` is a pagination style where clients can only navigate **forward and backward** — there is no concept of a page number or a random-access offset. Instead, each response includes opaque cursor tokens for the next and previous pages.
+
+---
+
+## Core Concepts
+
+| Concept | Description |
+|---------|-------------|
+| No page numbers | You cannot request `?page=5` or `?offset=40` |
+| Cursor tokens | Encrypted, position-specific tokens in next/previous links |
+| Ordering required | Results must always be ordered by a stable field (default: `created`) |
+| Sequential only | Users must navigate one page at a time — no jumping ahead |
+
+---
+
+## When to Use Cursor Pagination
+
+| Scenario | Cursor? |
+|----------|---------|
+| Social media feeds (Twitter, Instagram) | ✅ Yes |
+| Terms & conditions with forced sequential reading | ✅ Yes |
+| E-commerce product listing | ❌ No (use PageNumber) |
+| Developer API with custom windows | ❌ No (use LimitOffset) |
+
+---
+
+## Implementation
+
+```python
+# watchlist_app/api/pagination.py
+from rest_framework.pagination import CursorPagination
+
+class WatchListCPagination(CursorPagination):
+    page_size = 5
+    ordering = 'created'           # Must match a field on the model
+    cursor_query_param = 'record'  # Renamed from default 'cursor'
+```
+
+Apply to the view:
+
+```python
+# views.py
+from watchlist_app.api.pagination import WatchListCPagination
+
+class WatchListGV(generics.ListAPIView):
+    queryset = WatchList.objects.all()
+    serializer_class = WatchListSerializer
+    pagination_class = WatchListCPagination
+    # filter_backends = [OrderingFilter]  ← comment out; conflicts with cursor ordering
+```
+
+> **Important:** Do not use `OrderingFilter` alongside `CursorPagination`. They conflict because both try to set the ordering, causing a `None` ordering error.
+
+---
+
+## Response Structure
+
+```json
+{
+  "next": "http://localhost:8000/watch/list/?record=cD0yMDIz...",
+  "previous": null,
+  "results": [...]
+}
+```
+
+The `record` value in the URL is an **opaque, base64-encoded cursor** — not a human-readable page number.
+
+---
+
+## Ordering
+
+By default, `CursorPagination` orders by `-created` (most recent first). You can override this:
+
+```python
+class WatchListCPagination(CursorPagination):
+    page_size = 5
+    ordering = 'created'    # Oldest first (ascending)
+    # ordering = '-created' # Newest first (descending, default)
+    # ordering = 'title'    # Alphabetical
+```
+
+> **Requirement:** The `ordering` field must exist on the model. If your model does not have a `created` field, specify a different field or override `get_ordering()`.
+
+---
+
+## Changing the Cursor Parameter Name
+
+By default, cursor links use `?cursor=...`. Rename it:
+
+```python
+cursor_query_param = 'record'
+# Next page becomes: ?record=cD0yMDIz...
+```
+
+---
+
+## Attributes Reference
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `page_size` | `PAGE_SIZE` setting | Items per page |
+| `ordering` | `'-created'` | Field used for stable ordering |
+| `cursor_query_param` | `'cursor'` | Name of the cursor URL parameter |
+| `page_size_query_param` | `None` | Allow client to override page size |
+| `max_page_size` | `None` | Cap on client-requested page size |
+
+---
+
+## Comparison of All Pagination Types
+
+| Feature | PageNumber | LimitOffset | Cursor |
+|---------|------------|-------------|--------|
+| Jump to any page | ✅ Yes | ✅ Yes (via offset) | ❌ No |
+| Sequential only | No | No | ✅ Yes |
+| Requires ordering | No | No | ✅ Yes |
+| URL reveals position | Yes (`?page=5`) | Yes (`?offset=40`) | No (opaque token) |
+| Best for | Consumer websites | Developer APIs | Feeds, forced sequences |
+
+---
+
+## Compatibility Note
+
+All DRF pagination classes (including `CursorPagination`) only work with:
+
+- `ViewSet` classes
+- Generic API Views (`ListAPIView`, `ListCreateAPIView`, etc.)
+
+They do **not** work with plain `APIView` or function-based views.
+
+---
+
+## Key Takeaway
+
+Use `CursorPagination` when you need to enforce sequential navigation — like social feeds, real-time data streams, or multi-page agreements where skipping ahead should not be possible. For most standard use cases, `PageNumberPagination` remains the most practical choice.

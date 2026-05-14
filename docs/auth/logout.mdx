@@ -1,0 +1,96 @@
+---
+title: Logout
+description: Implementing logout by deleting the user's authentication token from the database
+sidebar_position: 10
+---
+
+# Token Logout
+---
+
+## How Token Logout Works
+
+With token authentication, "logging out" means **deleting the token from the database**. Once deleted:
+
+- The client's stored token becomes invalid
+- Any request carrying that token returns `401 Unauthorized`
+- The user must log in again to receive a new token
+
+---
+
+## The Logout View
+
+`user_app/api/views.py`:
+
+```python
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+
+@api_view(['POST'])
+def logout_view(request):
+    if request.method == 'POST':
+        request.user.auth_token.delete()
+        return Response(status=status.HTTP_200_OK)
+```
+
+`request.user` refers to the currently authenticated user (identified via their token in the `Authorization` header). `.auth_token` accesses that user's token object, and `.delete()` removes it from the database.
+
+---
+
+## URL
+
+```python
+from user_app.api.views import registration_view, logout_view
+
+urlpatterns = [
+    path('login/',    obtain_auth_token,  name='login'),
+    path('register/', registration_view,  name='register'),
+    path('logout/',   logout_view,        name='logout'),
+]
+```
+
+---
+
+## How to Use in Postman
+
+Send a `POST` request to `/account/logout/` with the token in the header:
+
+| Header | Value |
+|--------|-------|
+| `Authorization` | `Token <your_token>` |
+
+**Successful response:**
+
+```
+200 OK
+```
+
+After this, the same token will no longer grant access.
+
+---
+
+## Re-login After Logout
+
+Once logged out, the user must log in again via `/account/login/`. A **new token** is generated and returned:
+
+```json
+{"token": "a8d3f8...new_token_value..."}
+```
+
+---
+
+## The One Downside of Token Authentication
+
+Every incoming request with a token requires a **database lookup** to verify it. For most projects this is fine, but at very large scale (millions of users) this adds overhead.
+
+This problem is addressed by JWT authentication, which does not depend on the database for token verification.
+
+---
+
+## Complete Token Auth Summary
+
+| Endpoint | Method | Action |
+|----------|--------|--------|
+| `/account/register/` | POST | Create user + return token |
+| `/account/login/` | POST | Verify credentials + return token |
+| `/account/logout/` | POST | Delete token from DB |

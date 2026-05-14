@@ -1,0 +1,149 @@
+---
+title: "Nested"
+description: "How to build nested serializers in Django REST Framework to expose related model data (e.g., all movies for a streaming platform) in a single API response."
+topic: "Django REST Framework"
+lecture: 23
+tags: ["django", "drf", "serializers", "nested", "relationships"]
+sidebar_position: 2
+---
+
+# Nested Serializers
+---
+
+A **nested serializer** embeds a related object's serialized data directly inside the parent serializer's response. This lecture shows how to make a `StreamPlatform` response include all its associated `WatchList` items automatically.
+
+---
+
+## The Problem
+
+After adding a `ForeignKey` from `WatchList` to `StreamPlatform`, a GET request to `/stream/` returns only the platform's own fields — it does not include the movies that belong to it.
+
+```json
+{
+  "id": 1,
+  "name": "Netflix",
+  "about": "...",
+  "website": "https://netflix.com"
+}
+```
+
+---
+
+## The Goal
+
+We want each platform to include all its movies:
+
+```json
+{
+  "id": 1,
+  "name": "Netflix",
+  "about": "...",
+  "website": "https://netflix.com",
+  "watchlist": [
+    { "id": 1, "title": "Movie A", "storyline": "...", "active": true },
+    { "id": 2, "title": "Movie B", "storyline": "...", "active": true }
+  ]
+}
+```
+
+---
+
+## How Nested Serializers Work
+
+The key is the `related_name` defined on the `ForeignKey` field.
+When you set `related_name="watchlist"` on `WatchList.platform`, you can use `watchlist` as a field name in `StreamPlatformSerializer` to pull the reverse relation.
+
+```python
+# watchmate/serializer.py
+
+class WatchListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = WatchList
+        fields = '__all__'
+
+
+class StreamPlatformSerializer(serializers.ModelSerializer):
+    # "watchlist" must match the related_name on the ForeignKey
+    watchlist = WatchListSerializer(many=True, read_only=True)
+
+    class Meta:
+        model  = StreamPlatform
+        fields = '__all__'
+```
+
+---
+
+## Field Parameters Explained
+
+| Parameter     | Type    | Purpose                                                               |
+|---------------|---------|-----------------------------------------------------------------------|
+| `many=True`   | bool    | Tells DRF the relation returns multiple objects (a list)             |
+| `read_only=True` | bool | The nested data is returned in GET responses but not required on POST |
+
+---
+
+## related_name Must Match Exactly
+
+The string passed as the field name must be identical to the `related_name` on the `ForeignKey`.
+
+```python
+# models.py
+class WatchList(models.Model):
+    platform = models.ForeignKey(
+        StreamPlatform,
+        on_delete=models.CASCADE,
+        related_name="watchlist"   # ← this name
+    )
+```
+
+```python
+# serializer.py
+class StreamPlatformSerializer(serializers.ModelSerializer):
+    watchlist = WatchListSerializer(many=True, read_only=True)  # ← same name
+```
+
+If they do not match, the nested field simply returns nothing.
+
+---
+
+## Adding a New Platform via POST
+
+Because `watchlist` is `read_only=True`, you do **not** pass it when creating a platform:
+
+```json
+POST /stream/
+
+{
+  "name": "Disney+",
+  "about": "Disney streaming service",
+  "website": "https://disneyplus.com"
+}
+```
+
+The `watchlist` array is populated automatically once movies referencing this platform are created.
+
+---
+
+## Adding a Movie to a Platform
+
+```json
+POST /watch/
+
+{
+  "title": "C++",
+  "storyline": "A gripping thriller",
+  "platform": 6,
+  "active": true
+}
+```
+
+After this, GET `/stream/6/` will show `"watchlist": [{ "id": ..., "title": "C++", ... }]`.
+
+---
+
+## Key Takeaways
+
+- A nested serializer embeds a child serializer as a field inside a parent serializer.
+- Use `many=True` when the relation is one-to-many (one platform → many movies).
+- Use `read_only=True` to prevent clients from writing to the nested field directly.
+- The field name in the serializer **must match** the `related_name` on the model's `ForeignKey`.

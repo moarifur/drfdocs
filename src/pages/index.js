@@ -10,7 +10,6 @@ function HomepageHeader() {
                 <Heading as="h1" className="hero__title">
                     Django REST Framework Course
                 </Heading>
-
                 <p className="hero__subtitle">
                     Build powerful APIs with Python and Django using a complete
                     project-based learning approach.
@@ -20,53 +19,131 @@ function HomepageHeader() {
     );
 }
 
+const learnModules = [
+    {
+        module: 'Models',
+        topics: ['StreamPlatform', 'WatchList', 'Review'],
+        isCode: true,
+    },
+    {
+        module: 'Serializers',
+        topics: ['Model serializers, nested serializers, validation'],
+        isCode: false,
+    },
+    {
+        module: 'Views',
+        topics: ['APIView', 'GenericAPIView', 'ViewSets', 'Mixins'],
+        isCode: true,
+    },
+    {
+        module: 'Authentication',
+        topics: ['Token authentication, JWT (SimpleJWT)'],
+        isCode: false,
+    },
+    {
+        module: 'Permissions',
+        topics: [
+            'IsAuthenticated',
+            'IsAdminUser',
+            'IsAuthenticatedOrReadOnly',
+            'Custom permissions',
+        ],
+        isCode: true,
+    },
+    {
+        module: 'Throttling',
+        topics: ['Scope-based and custom throttle classes'],
+        isCode: false,
+    },
+    {
+        module: 'Filtering',
+        topics: ['SearchFilter', 'OrderingFilter', 'Custom queryset filtering'],
+        isCode: true,
+    },
+    {
+        module: 'Pagination',
+        topics: [
+            'PageNumberPagination',
+            'LimitOffsetPagination',
+            'Custom pagination',
+        ],
+        isCode: true,
+    },
+    {
+        module: 'Testing',
+        topics: [
+            'APITestCase',
+            'setUp',
+            'Registration, login, logout, CRUD, TDD concepts',
+        ],
+        isCode: true,
+    },
+    {
+        module: 'Project',
+        topics: ['requirements.txt, import cleanup, GitHub publishing'],
+        isCode: false,
+    },
+];
+
 export default function Home() {
     return (
         <Layout
-            title="Introduction"
+            title="What You'll Learn"
             description="Course overview for the Django REST Framework series">
 
             <HomepageHeader />
 
             <main className="container margin-vert--lg">
 
-                <Heading as="h1">Introduction</Heading>
-
-                <Heading as="h2">Overview</Heading>
+                <Heading as="h2">What You'll Learn</Heading>
 
                 <p>
-                    Welcome to this comprehensive course on <strong>Django REST Framework (DRF)</strong> —
-                    built with a project-based approach from the ground up.
-                    The goal is to help you build flexible, powerful APIs using Python and Django.
+                    Throughout this course, you will build a complete{' '}
+                    <strong>Streaming Service Review API</strong> from scratch
+                    using Django REST Framework. Here is a summary of everything
+                    covered:
                 </p>
 
-                <Heading as="h2">What You Will Build</Heading>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Module</th>
+                        <th>Topics</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {learnModules.map(({ module, topics, isCode }) => (
+                        <tr key={module}>
+                            <td>
+                                <strong>{module}</strong>
+                            </td>
+                            <td>
+                                {isCode
+                                    ? topics.map((t, i) => (
+                                        <span key={i}>
+                                                  {t.startsWith(t[0].toUpperCase()) &&
+                                                  !t.includes(' ') ? (
+                                                      <code>{t}</code>
+                                                  ) : (
+                                                      t
+                                                  )}
+                                            {i < topics.length - 1 && ', '}
+                                              </span>
+                                    ))
+                                    : topics.join(', ')}
+                            </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
 
-                <p>
-                    Throughout the course, you will build an <strong>IMDB clone</strong> —
-                    a movie information API covering storylines, ratings, and reviews,
-                    similar to the popular IMDB website.
-                </p>
-
-                <Heading as="h2">Topics Covered</Heading>
-
-                <ul>
-                    <li>Basic concepts of APIs and REST architecture</li>
-                    <li>Serializers</li>
-                    <li>Function-Based Views and Class-Based Views</li>
-                    <li>Generic Views, Viewsets, and Routers</li>
-                    <li>Permissions for different user types</li>
-                    <li>Authentication: Basic, Token, and JWT</li>
-                    <li>Throttling</li>
-                    <li>Filtering, Searching, and Ordering</li>
-                    <li>Pagination</li>
-                    <li>Automated Testing</li>
-                </ul>
+                <hr />
 
                 <Heading as="h2">Prerequisites</Heading>
 
                 <p>
-                    All you need is basic knowledge of <strong>Python</strong> and <strong>Django</strong> to get started.
+                    All you need is basic knowledge of <strong>Python</strong>{' '}
+                    and <strong>Django</strong> to get started.
                 </p>
 
                 <Heading as="h2">What You Get</Heading>
@@ -79,8 +156,9 @@ export default function Home() {
 
                 <blockquote>
                     <p>
-                        This course takes you from the very basics all the way through
-                        automated testing — making it a complete end-to-end learning experience.
+                        This course takes you from the very basics all the way
+                        through automated testing — making it a complete
+                        end-to-end learning experience.
                     </p>
                 </blockquote>
 

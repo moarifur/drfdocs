@@ -1,0 +1,159 @@
+---
+title: LimitOffset
+description: Implementing LimitOffsetPagination in Django REST Framework for fine-grained client control over result windows
+lesson: 59
+topic: Pagination Part 2 — LimitOffsetPagination
+sidebar_position: 8
+---
+
+# LimitOffset
+---
+## Overview
+
+`LimitOffsetPagination` gives clients direct control over a **result window** using two parameters:
+
+| Parameter | Meaning |
+|-----------|---------|
+| `limit` | How many items to return |
+| `offset` | How many items to skip before starting |
+
+This mirrors how SQL's `LIMIT` and `OFFSET` work, and is commonly used in professional public APIs.
+
+---
+
+## Concept
+
+With 17 total items:
+
+```
+limit=5, offset=0   → items 1–5    (first page)
+limit=5, offset=5   → items 6–10   (second page)
+limit=5, offset=10  → items 11–15  (third page)
+limit=5, offset=15  → items 16–17  (last page, partial)
+
+limit=10, offset=2  → items 3–12   (custom window)
+```
+
+---
+
+## Implementation
+
+```python
+# watchlist_app/api/pagination.py
+from rest_framework.pagination import LimitOffsetPagination
+
+class WatchListLOPagination(LimitOffsetPagination):
+    default_limit = 5          # items per page if no limit param given
+    max_limit = 50             # ceiling — client cannot exceed this
+    limit_query_param = 'limit'   # default, can be renamed
+    offset_query_param = 'start'  # renamed from 'offset' to 'start'
+```
+
+Apply to the view:
+
+```python
+# views.py
+from watchlist_app.api.pagination import WatchListLOPagination
+
+class WatchListGV(generics.ListAPIView):
+    queryset = WatchList.objects.all()
+    serializer_class = WatchListSerializer
+    pagination_class = WatchListLOPagination
+```
+
+---
+
+## Response Structure
+
+```json
+{
+  "count": 17,
+  "next": "http://localhost:8000/watch/list/?limit=5&start=5",
+  "previous": null,
+  "results": [...]
+}
+```
+
+---
+
+## Attributes Reference
+
+| Attribute | Default | Description |
+|-----------|---------|-------------|
+| `default_limit` | `PAGE_SIZE` setting | Items per page when no `limit` param is sent |
+| `max_limit` | `None` (no cap) | Maximum value the client can request |
+| `limit_query_param` | `'limit'` | Name of the limit URL parameter |
+| `offset_query_param` | `'offset'` | Name of the offset URL parameter |
+
+---
+
+## Example URL Queries
+
+```
+GET /watch/list/                        # default_limit=5, offset=0
+GET /watch/list/?limit=10&start=2       # 10 items starting from position 2
+GET /watch/list/?limit=17               # all 17 items at once
+GET /watch/list/?limit=1000             # capped at max_limit=50
+```
+
+---
+
+## No Max Limit (Danger Zone)
+
+Without `max_limit`, a client can request all records in one shot:
+
+```
+GET /watch/list/?limit=99999
+```
+
+Always set `max_limit` to prevent API abuse.
+
+---
+
+## Renaming Parameters
+
+Rename `offset` to `start` for more user-friendly URLs:
+
+```python
+offset_query_param = 'start'
+```
+
+```
+# Before: ?limit=5&offset=10
+# After:  ?limit=5&start=10
+```
+
+This is a common pattern in professional APIs — CoinMarketCap uses `?start=1&limit=5`.
+
+---
+
+## Real-World Example — CoinMarketCap API
+
+The CoinMarketCap developer API uses exactly this pattern:
+
+```
+GET /v1/cryptocurrency/listings/latest?start=1&limit=5
+# Returns 5 cryptocurrencies starting from rank 1
+
+GET /v1/cryptocurrency/listings/latest?start=1&limit=500
+# Returns the top 500 cryptocurrencies
+```
+
+Clients with paid plans get higher `limit` ceilings. Free accounts are capped at a smaller maximum — implemented via `max_limit`.
+
+---
+
+## Comparison with PageNumberPagination
+
+| Feature | `PageNumberPagination` | `LimitOffsetPagination` |
+|---------|----------------------|------------------------|
+| Client navigates by | Page number | Limit + offset values |
+| Skip to middle of results | Difficult | Easy (set offset) |
+| Common on | Consumer websites | Public/developer APIs |
+| Familiar to developers | Somewhat | Yes (mirrors SQL) |
+
+---
+
+## Key Takeaway
+
+`LimitOffsetPagination` is the preferred style when sharing your API with **external developers or clients** who need precise control over result windows. Always set `max_limit` to prevent abuse, and consider renaming `offset` to `start` for a friendlier interface.

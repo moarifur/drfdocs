@@ -1,0 +1,101 @@
+---
+title: API
+description: Understanding what an API is, its types, real-world examples, and the consumer/provider model
+lecture: "003"
+topic: Understanding APIs
+tags: [api, rest, http, json, concepts]
+sidebar_position: 3
+---
+
+# APIs
+---
+
+## What Is an API?
+
+**API** stands for **Application Programming Interface**. In simple terms, an API is a **middleman** — it connects two different applications or services and allows them to communicate with each other.
+
+### Real-World Analogy: Restaurant
+
+| Role | Represents |
+|---|---|
+| Customer | Client (your app) |
+| Waiter | API (the middleman) |
+| Kitchen | Server / Backend |
+
+The waiter takes your order (request), delivers it to the kitchen (server), and brings back your food (response). This is exactly how an API works between a client and a server.
+
+### Tech Example
+
+> Uber uses Google Maps to display routes. These two completely separate applications are connected through an API.
+
+---
+
+## Types of APIs
+
+| Type | Description | Example |
+|---|---|---|
+| **Private** | Used within a single organization | Internal website + mobile app sharing one backend |
+| **Partner** | Shared with specific business partners | IMDB API used by Prime Video |
+| **Public** | Open for any registered developer | OpenWeatherMap, CoinMarketCap |
+
+### Private API Use Case
+
+```
+Backend (Django + DB)
+    ├── Website (Frontend)
+    ├── iOS App
+    ├── Android App
+    └── Desktop App
+```
+
+All share a **single backend** connected via a private API — no need to rewrite the backend for each platform.
+
+---
+
+## Request & Response Cycle
+
+APIs communicate using a standard language — **JSON** (or XML).
+
+```json
+// Example Request (user registration)
+{
+  "username": "john",
+  "email": "john@example.com",
+  "password": "secret123"
+}
+
+// Example Response (token returned)
+{
+  "token": "abc123xyz"
+}
+```
+
+Every request returns a **status code** along with the response data to indicate success or failure.
+
+---
+
+## Consumer vs Provider
+
+| Role | Description |
+|---|---|
+| **Consumer** | Your app fetches data from external APIs (e.g., pulling product data from Amazon/eBay) |
+| **Provider** | Your app exposes an API so others can consume your data |
+
+> **The goal of this course** is to make you a **provider** — you'll build APIs that your own web, iOS, Android, or desktop frontends (and others) can consume.
+
+---
+
+## URL Structure
+
+```
+Base URL:     https://movielist.com/api/
+Endpoint:     /movies/         → list of all movies
+Endpoint:     /movies/127/     → individual movie (ID 127)
+Query Param:  /movies/127/reviews/?limit=20 → first 20 reviews
+```
+
+| URL Part | Name |
+|---|---|
+| `https://movielist.com/api` | Base URL |
+| `/movies/` | Endpoint (all elements) |
+| `/movies/127/` | Endpoint (individual element) |

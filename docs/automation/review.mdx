@@ -1,0 +1,233 @@
+---
+title: Review
+description: API testing for the Review model — create, update, list, detail, duplicate review prevention, and unauthenticated access
+lecture: "066"
+topic: API Testing
+tags: [django, rest-framework, testing, review, authentication, force-authenticate]
+sidebar_position: 5
+---
+
+# Review Testing
+---
+## Overview
+
+This lecture covers comprehensive testing of the `Review` model. Unlike `StreamPlatform` and `WatchList`, reviews are fully controlled by normal users — they can create, update, and delete their own reviews. Test scenarios include:
+
+- Creating a review (authenticated)
+- Preventing duplicate reviews on the same movie
+- Accessing reviews as an unauthenticated user
+- Updating a review with a PUT request
+- Listing all reviews
+- Accessing an individual review
+
+---
+
+## Model Dependency Chain
+
+```
+StreamPlatform  →  WatchList  →  Review
+```
+
+To create a review, a WatchList entry (movie) must exist, and a movie requires a StreamPlatform.
+
+---
+
+## `setUp`
+
+```python
+class ReviewTestCase(APITestCase):
+
+    def setUp(self):
+        # Create and authenticate user
+        self.user = User.objects.create_user(
+            username="example",
+            password="Password@123"
+        )
+        self.token = Token.objects.get(user__username=self.user.username)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+        # Create StreamPlatform
+        self.stream = models.StreamPlatform.objects.create(
+            name="Netflix",
+            about="A streaming service",
+            website="https://www.netflix.com"
+        )
+
+        # Create two WatchList items (needed to test two separate reviews)
+        self.watchlist = models.WatchList.objects.create(
+            platform=self.stream,
+            title="Example Movie",
+            storyline="Example storyline",
+            active=True
+        )
+        self.watchlist2 = models.WatchList.objects.create(
+            platform=self.stream,
+            title="Example Movie 2",
+            storyline="Example storyline 2",
+            active=True
+        )
+
+        # Manually create a review on watchlist2 (used for update/detail tests)
+        self.review = models.Review.objects.create(
+            review_user=self.user,
+            rating=5,
+            description="Great movie",
+            watchlist=self.watchlist2,
+            active=True
+        )
+```
+
+> Two WatchList entries are needed because a user can only write **one review per movie**. Using separate movies allows testing create and update independently.
+
+---
+
+## Test: Create Review
+
+```python
+def test_review_create(self):
+    data = {
+        "review_user": self.user,
+        "rating": 5,
+        "description": "Great movie",
+        "watchlist": self.watchlist,
+        "active": True
+    }
+    response = self.client.post(
+        reverse('review-create', kwargs={'pk': self.watchlist.pk}),
+        data
+    )
+    self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    self.assertEqual(models.Review.objects.count(), 2)
+    self.assertEqual(models.Review.objects.get(pk=self.review.pk).rating, 5)
+```
+
+The review endpoint URL includes the movie ID:
+```
+POST /watch/<movie_pk>/review-create/
+```
+
+---
+
+## Test: Duplicate Review Prevention
+
+A user cannot submit a second review for the same movie. The API returns `400 Bad Request`:
+
+```python
+def test_review_create_duplicate(self):
+    # First review
+    data = { "review_user": self.user, "rating": 5, "description": "Great", "watchlist": self.watchlist2, "active": True }
+    self.client.post(reverse('review-create', kwargs={'pk': self.watchlist2.pk}), data)
+
+    # Second review on the same movie — should fail
+    response = self.client.post(
+        reverse('review-create', kwargs={'pk': self.watchlist2.pk}),
+        data
+    )
+    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+```
+
+| Attempt | Expected Status |
+|---|---|
+| First review on a movie | `201 Created` |
+| Second review on the same movie | `400 Bad Request` |
+
+---
+
+## Test: Unauthenticated Review
+
+Use `force_authenticate(user=None)` to simulate a user who is not logged in:
+
+```python
+def test_review_create_unauth(self):
+    self.client.force_authenticate(user=None)
+    data = {
+        "review_user": self.user,
+        "rating": 5,
+        "description": "Great movie",
+        "watchlist": self.watchlist,
+        "active": True
+    }
+    response = self.client.post(
+        reverse('review-create', kwargs={'pk': self.watchlist.pk}),
+        data
+    )
+    self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+```
+
+### Authentication Methods Compared
+
+| Method | Use Case |
+|---|---|
+| `self.client.credentials(HTTP_AUTHORIZATION='Token ...')` | Token-based authentication |
+| `self.client.force_authenticate(user=self.user)` | Skip token lookup, log in as a user |
+| `self.client.force_authenticate(user=None)` | Log out / simulate unauthenticated request |
+
+---
+
+## Test: Update Review (PUT)
+
+```python
+def test_review_update(self):
+    data = {
+        "review_user": self.user,
+        "rating": 4,
+        "description": "Updated review",
+        "watchlist": self.watchlist2,
+        "active": False
+    }
+    response = self.client.put(
+        reverse('review-detail', kwargs={'pk': self.review.pk}),
+        data
+    )
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+---
+
+## Test: List All Reviews
+
+```python
+def test_review_list(self):
+    response = self.client.get(
+        reverse('review-list', kwargs={'pk': self.watchlist.pk})
+    )
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+---
+
+## Test: Individual Review
+
+```python
+def test_review_individual(self):
+    response = self.client.get(
+        reverse('review-detail', kwargs={'pk': self.review.pk})
+    )
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+---
+
+## Status Code Reference
+
+| Scenario | Status Code |
+|---|---|
+| Successful review creation | `201 Created` |
+| Duplicate review attempt | `400 Bad Request` |
+| Unauthenticated request | `401 Unauthorized` |
+| Successful update | `200 OK` |
+| Successful list/detail | `200 OK` |
+
+---
+
+## Homework
+
+Add a delete test as additional practice:
+
+```python
+def test_review_delete(self):
+    response = self.client.delete(
+        reverse('review-detail', kwargs={'pk': self.review.pk})
+    )
+    self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+```

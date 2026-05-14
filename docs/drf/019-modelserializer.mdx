@@ -1,0 +1,137 @@
+---
+title: ModelSerializer
+description: Using ModelSerializer to automatically generate serializer fields from a Django model, reducing boilerplate code
+lecture: "019"
+topic: Model Serializer
+tags: [drf, model-serializer, meta, fields, exclude]
+sidebar_position: 8
+---
+
+# ModelSerializer
+---
+
+## What Is `ModelSerializer`?
+
+`ModelSerializer` is a shortcut that automatically generates serializer fields based on a Django model. It also includes default implementations of `create()` and `update()`.
+
+---
+
+## Basic Serializer vs ModelSerializer
+
+### Basic Serializer (Manual)
+
+```python
+class MovieSerializer(serializers.Serializer):
+    id          = serializers.IntegerField(read_only=True)
+    name        = serializers.CharField()
+    description = serializers.CharField()
+    active      = serializers.BooleanField()
+
+    def create(self, validated_data):
+        return Movie.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.description = validated_data.get('description', instance.description)
+        instance.active = validated_data.get('active', instance.active)
+        instance.save()
+        return instance
+```
+
+### ModelSerializer (Automatic)
+
+```python
+class MovieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Movie
+        fields = '__all__'   # Include all model fields
+```
+
+> `create()` and `update()` are provided automatically — no need to define them.
+
+---
+
+## Controlling Fields
+
+### Include All Fields
+
+```python
+class Meta:
+    model  = Movie
+    fields = '__all__'
+```
+
+### Include Specific Fields
+
+```python
+class Meta:
+    model  = Movie
+    fields = ['id', 'name', 'description']   # Only these three
+```
+
+### Exclude Specific Fields
+
+```python
+class Meta:
+    model  = Movie
+    exclude = ['active']   # Everything except 'active'
+```
+
+---
+
+## Comparison Table
+
+| Feature | `Serializer` | `ModelSerializer` |
+|---|---|---|
+| Field definition | Manual (each field) | Automatic from model |
+| `create()` method | Must define manually | Auto-included |
+| `update()` method | Must define manually | Auto-included |
+| Custom validation | ✅ Full control | ✅ Add manually if needed |
+| Flexibility | Maximum | High (still customizable) |
+| Lines of code | More | Less |
+
+---
+
+## Adding Custom Validation to ModelSerializer
+
+Even with `ModelSerializer`, you can still add field-level and object-level validations:
+
+```python
+class MovieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = Movie
+        fields = '__all__'
+
+    def validate_name(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError("Name is too short.")
+        return value
+
+    def validate(self, data):
+        if data['name'] == data['description']:
+            raise serializers.ValidationError("Title and description must differ.")
+        return data
+```
+
+---
+
+## Practical Example
+
+```python
+# View using ModelSerializer
+@api_view(['GET', 'POST'])
+def movie_list(request):
+    if request.method == 'GET':
+        movies = Movie.objects.all()
+        serializer = MovieSerializer(movies, many=True)
+        return Response(serializer.data)
+
+    if request.method == 'POST':
+        serializer = MovieSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
+
+Everything works the same — only the serializer definition is simpler.

@@ -1,0 +1,124 @@
+---
+title: Validation
+description: Adding field-level, object-level, and validator-based validation to DRF serializers
+lecture: "017"
+topic: Validation
+tags: [drf, serializers, validation, field-level, object-level, validators]
+sidebar_position: 6
+---
+
+# Validation
+---
+
+## Overview
+
+DRF serializers support three types of validation, all triggered when `serializer.is_valid()` is called:
+
+| Type | Scope | Method Name |
+|---|---|---|
+| **Field-Level** | Single field | `validate_<fieldname>` |
+| **Object-Level** | Multiple fields together | `validate` |
+| **Validators** | Passed as field argument | `validators=[...]` |
+
+---
+
+## Field-Level Validation
+
+Checks a **single field** in isolation. Useful for length checks, pattern checks, uniqueness, etc.
+
+```python
+class MovieSerializer(serializers.Serializer):
+    id          = serializers.IntegerField(read_only=True)
+    name        = serializers.CharField()
+    description = serializers.CharField()
+    active      = serializers.BooleanField()
+
+    def validate_name(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError("Name is too short.")
+        return value
+```
+
+**Test:**
+- Submit `"name": "G"` → Error: `"Name is too short."`
+- Submit `"name": "Godfather"` → Passes
+
+---
+
+## Object-Level Validation
+
+Checks **multiple fields together** — useful when one field depends on another.
+
+```python
+    def validate(self, data):
+        if data['name'] == data['description']:
+            raise serializers.ValidationError(
+                "Title and description should be different."
+            )
+        return data
+```
+
+**Test:**
+- Submit `name` and `description` as the same string → Error: `"Title and description should be different."`
+
+---
+
+## Validators (Field-Level via Argument)
+
+Define a standalone function and pass it to a field using the `validators` argument:
+
+```python
+def name_length(value):
+    if len(value) < 2:
+        raise serializers.ValidationError("Name is too short.")
+
+class MovieSerializer(serializers.Serializer):
+    id          = serializers.IntegerField(read_only=True)
+    name        = serializers.CharField(validators=[name_length])
+    description = serializers.CharField()
+    active      = serializers.BooleanField()
+```
+
+> Note: The standalone validator function does **not** take `self` — it's not a class method.
+
+---
+
+## Comparison Table
+
+| Type | Where Defined | When to Use |
+|---|---|---|
+| `validate_<field>` | Inside serializer class | Validate one field with access to `self` |
+| `validate` | Inside serializer class | Cross-field validation (compare multiple fields) |
+| `validators=[fn]` | As a field argument | Reusable validation functions across serializers |
+
+---
+
+## Validation Flow
+
+```
+POST Request arrives
+    → Serializer receives data
+        → Field-level validators run (per field)
+            → Object-level validator runs (on full object)
+                → serializer.is_valid() returns True/False
+```
+
+---
+
+## Error Response Example
+
+```json
+{
+  "name": [
+    "Name is too short."
+  ]
+}
+```
+
+```json
+{
+  "non_field_errors": [
+    "Title and description should be different."
+  ]
+}
+```

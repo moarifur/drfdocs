@@ -1,0 +1,131 @@
+---
+title: "Relationships"
+description: "Understanding Django model relationships — one-to-one, many-to-one, and many-to-many — and how to apply them in a streaming platform project."
+topic: "Django REST Framework"
+lecture: 22
+tags: ["django", "models", "foreignkey", "relationships", "drf"]
+sidebar_position: 1
+---
+
+# Relationships
+---
+
+Django provides three core relationship types between models. This lecture covers all three, then implements a **ForeignKey** relationship between `WatchList` and `StreamPlatform` in a streaming-platform API.
+
+---
+
+## Overview of Django Relationship Types
+
+| Relationship   | Description                                                       | Real-World Example                            |
+|----------------|-------------------------------------------------------------------|-----------------------------------------------|
+| `OneToOneField`   | One object relates to exactly one other object                 | One restaurant ↔ one address                  |
+| `ForeignKey` (Many-to-One) | Many objects relate to a single object              | Many movies → one streaming platform          |
+| `ManyToManyField` | Many objects relate to many other objects                     | Articles ↔ Publications                       |
+
+---
+
+## One-to-One Relationship
+
+Used when a single object can be tied to exactly one other single object.
+
+**Example:** A restaurant has one location, and that location belongs to exactly one restaurant.
+
+```python
+from django.db import models
+
+class Place(models.Model):
+    name = models.CharField(max_length=50)
+    address = models.CharField(max_length=80)
+
+class Restaurant(models.Model):
+    place = models.OneToOneField(Place, on_delete=models.CASCADE)
+```
+
+---
+
+## Many-to-One Relationship (ForeignKey)
+
+The most common relationship. Many child records point to a single parent.
+
+**Example:** Many movies belong to one streaming platform (Netflix, Prime, etc.), but each movie is on only one platform.
+
+```python
+class WatchList(models.Model):
+    platform = models.ForeignKey(
+        StreamPlatform,
+        on_delete=models.CASCADE,
+        related_name="watchlist",
+        null=True
+    )
+    title   = models.CharField(max_length=50)
+    storyline = models.CharField(max_length=200)
+    active  = models.BooleanField(default=True)
+```
+
+> **`related_name="watchlist"`** — lets you reverse-query all movies from a platform instance (e.g., `netflix_instance.watchlist.all()`).
+
+---
+
+## Many-to-Many Relationship
+
+An object on either side can be associated with many objects on the other side.
+
+**Example:** An article can appear in many publications, and a publication contains many articles.
+
+```python
+class Publication(models.Model):
+    title = models.CharField(max_length=30)
+
+class Article(models.Model):
+    headline     = models.CharField(max_length=100)
+    publications = models.ManyToManyField(Publication)
+```
+
+---
+
+## Project Model: StreamPlatform
+
+```python
+class StreamPlatform(models.Model):
+    name    = models.CharField(max_length=30)
+    about   = models.CharField(max_length=150)
+    website = models.URLField(max_length=100)
+
+    def __str__(self):
+        return self.name
+```
+
+---
+
+## Applying the ForeignKey & Running Migrations
+
+After adding the `ForeignKey` to `WatchList`, run:
+
+```bash
+python manage.py makemigrations
+# When prompted for a default value on existing rows, choose: None
+python manage.py migrate
+python manage.py runserver
+```
+
+---
+
+## on_delete Options
+
+| Option          | Behaviour                                                      |
+|-----------------|----------------------------------------------------------------|
+| `CASCADE`       | Deletes all related child objects when the parent is deleted   |
+| `SET_NULL`      | Sets the FK field to `NULL` (requires `null=True`)             |
+| `SET_DEFAULT`   | Sets the FK field to its default value                         |
+| `PROTECT`       | Prevents deletion of the parent if children exist              |
+| `DO_NOTHING`    | Takes no action (may cause database integrity errors)          |
+
+---
+
+## Key Takeaways
+
+- Use **`OneToOneField`** when both sides are singular (e.g., user ↔ profile).
+- Use **`ForeignKey`** (many-to-one) when many children share one parent.
+- Use **`ManyToManyField`** when both sides can have multiple associations.
+- Always set **`on_delete`** and consider **`related_name`** for reverse queries.
+- After changing models, always run `makemigrations` then `migrate`.

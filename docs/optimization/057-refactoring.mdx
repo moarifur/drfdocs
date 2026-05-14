@@ -1,0 +1,114 @@
+---
+title: Refactoring
+description: Minor project-level refactors before implementing pagination — renaming views, cleaning serializers, and displaying related model field names
+lesson: 57
+topic: Project Update
+sidebar_position: 6
+---
+
+# Refactoring
+---
+## Overview
+
+Before implementing pagination, three small but important changes are made to the project to prevent naming conflicts, clean up API responses, and display human-readable field values.
+
+---
+
+## Change 1 — Rename the WatchList Generic View Class
+
+A naming conflict exists between the `WatchList` model and a view class also called `WatchList`. When the view tries to import the model, Python resolves to the class itself instead — causing a runtime error.
+
+**Fix:** Rename the generic view class with a distinguishing suffix:
+
+```python
+# Before (causes NameError — class name shadows the model import)
+class WatchList(generics.ListAPIView):
+    queryset = WatchList.objects.all()   # ❌ refers to itself
+
+# After
+class WatchListGV(generics.ListAPIView):
+    queryset = WatchList.objects.all()   # ✅ correctly refers to the model
+    serializer_class = WatchListSerializer
+```
+
+Also update the URL configuration to use the new class name:
+
+```python
+# urls.py
+path('list/', WatchListGV.as_view(), name='watch-list'),
+```
+
+---
+
+## Change 2 — Remove Nested Reviews from WatchList Response
+
+The `WatchListSerializer` previously returned all review objects embedded inside each movie response — making the payload very large and hard to read.
+
+Remove (or comment out) the nested review field:
+
+```python
+# serializers.py
+class WatchListSerializer(serializers.ModelSerializer):
+    # review = ReviewSerializer(many=True, read_only=True)  # ← commented out
+    platform = serializers.CharField(source='platform.name')
+
+    class Meta:
+        model = WatchList
+        fields = '__all__'
+```
+
+Reviews are still accessible via their dedicated endpoint:
+
+```
+GET /stream/<pk>/review/
+```
+
+The `avg_rating` and `number_rating` fields remain in the response to summarise review data.
+
+---
+
+## Change 3 — Display Platform Name Instead of Platform ID
+
+By default, a ForeignKey field in a serializer returns the **numeric ID** of the related object. Override the field to display the `name` instead:
+
+```python
+# serializers.py
+class WatchListSerializer(serializers.ModelSerializer):
+    platform = serializers.CharField(source='platform.name')  # shows "Netflix" not 3
+
+    class Meta:
+        model = WatchList
+        fields = '__all__'
+```
+
+**Before:**
+```json
+{ "platform": 3 }
+```
+
+**After:**
+```json
+{ "platform": "Netflix" }
+```
+
+---
+
+## Summary of Changes
+
+| Change | Problem Solved | Location |
+|--------|----------------|----------|
+| Rename `WatchList` → `WatchListGV` | Model/class name collision | `views.py`, `urls.py` |
+| Comment out nested `review` field | Bloated API responses | `serializers.py` |
+| Override `platform` with `source='platform.name'` | ForeignKey showing ID instead of name | `serializers.py` |
+
+---
+
+## Preparation for Pagination
+
+To properly test pagination, you should have **15–20 movies** in your `WatchList` database table. Add them via the Django admin panel:
+
+```
+/admin/ → WatchList → Add WatchList
+```
+
+Having multiple records ensures pagination can divide them across pages — which is the focus of the next lesson.

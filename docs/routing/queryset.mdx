@@ -1,0 +1,151 @@
+---
+title: Queryset
+description: Overriding get_queryset and perform_create to filter reviews by movie and auto-assign relationships
+topic: Overwrite Queryset
+lecture: "030"
+tags: [django-rest-framework, queryset, perform-create, filtering, nested-apis]
+sidebar_position: 3
+---
+
+# Overriding Queryset
+
+## Overview
+
+When reviews are nested under a movie URL (e.g. `/stream/1/review/`), the default `queryset = Review.objects.all()` returns **every review in the database**, not just the ones for that movie. This lecture covers two key override methods that fix this:
+
+| Method | When Called | Purpose |
+|---|---|---|
+| `get_queryset()` | On every GET request | Filter results to the current movie |
+| `perform_create()` | On every POST request | Auto-assign the movie FK before saving |
+
+---
+
+## The Problem
+
+```python
+# Returns ALL reviews — incorrect for a nested URL
+class ReviewList(generics.ListAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+```
+
+Visiting `/stream/4/review/` would return reviews for *all* movies, not just movie 4.
+
+---
+
+## Solution 1 — Override `get_queryset()`
+
+Remove the static `queryset` attribute and define the method instead:
+
+```python
+class ReviewList(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        pk = self.kwargs['pk']          # grab movie ID from the URL
+        return Review.objects.filter(watchlist=pk)
+```
+
+### How it works
+
+```
+GET /stream/4/review/
+       ↓
+get_queryset()
+       ↓
+self.kwargs['pk'] == 4
+       ↓
+Review.objects.filter(watchlist=4)
+       ↓
+Returns only reviews for movie #4
+```
+
+---
+
+## Designing Three Separate Endpoints
+
+Following the Amazon product-review pattern, three distinct endpoints serve different responsibilities:
+
+| Endpoint | View Class | Purpose |
+|---|---|---|
+| `stream/<pk>/review/` | `ReviewList` (ListAPIView) | List reviews for a movie |
+| `stream/<pk>/review-create/` | `ReviewCreate` (CreateAPIView) | Create a review for a movie |
+| `review/<pk>/` | `ReviewDetail` (RetrieveUpdateDestroyAPIView) | View / edit / delete a review |
+
+Splitting create from list is intentional — if a user has no interest in writing a review, the create endpoint is never called.
+
+---
+
+## Solution 2 — Override `perform_create()`
+
+When a user submits a review via `POST /stream/1/review-create/`, the movie FK must be set automatically from the URL — the user should not have to pass it manually.
+
+```python
+class ReviewCreate(generics.CreateAPIView):
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        return Review.objects.all()
+
+    def perform_create(self, serializer):
+        pk = self.kwargs['pk']
+        movie = WatchList.objects.get(pk=pk)
+        serializer.save(watchlist=movie)
+```
+
+### Lifecycle of a POST request
+
+```
+POST /stream/1/review-create/
+        ↓
+perform_create(serializer)
+        ↓
+pk = self.kwargs['pk']   → 1
+        ↓
+movie = WatchList.objects.get(pk=1)   → "Python 3.9"
+        ↓
+serializer.save(watchlist=movie)
+        ↓
+Review saved with watchlist=<WatchList: Python 3.9>
+```
+
+### Other `perform_*` hooks available
+
+| Hook | Triggered by |
+|---|---|
+| `perform_create(serializer)` | POST — saving a new object |
+| `perform_update(serializer)` | PUT/PATCH — updating an object |
+| `perform_destroy(instance)` | DELETE — deleting an object |
+
+---
+
+## Fixing the Serializer
+
+Because `watchlist` is now injected in `perform_create`, it must be **excluded** from required serializer fields to avoid a validation error:
+
+```python
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        exclude = ('watchlist',)   # auto-assigned in the view
+```
+
+Before this fix, submitting a POST would fail because the serializer expected `watchlist` in the request body.
+
+---
+
+## URL Configuration
+
+```python
+urlpatterns = [
+    path('stream/<int:pk>/review/', views.ReviewList.as_view(), name='review-list'),
+    path('stream/<int:pk>/review-create/', views.ReviewCreate.as_view(), name='review-create'),
+    path('review/<int:pk>/', views.ReviewDetail.as_view(), name='review-detail'),
+]
+```
+
+---
+
+## Key Takeaway
+
+> `get_queryset()` scopes *what you read*. `perform_create()` controls *what you write*. Together they give you full control over how nested resources are fetched and created without polluting the serializer with URL-derived data.

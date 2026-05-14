@@ -1,0 +1,105 @@
+---
+title: JSONDetail
+description: Creating a JSON response for a single object using primary key — and why DRF serializers are necessary
+lecture: "009"
+topic: Creating JSON Response — Individual Elements
+tags: [django, json, views, pk, individual, response]
+sidebar_position: 4
+---
+
+# JSONDetail, without DRF
+---
+
+## Goal
+
+Return a **single movie** object as a JSON response based on its primary key (PK) — still without DRF.
+
+---
+
+## View Function
+
+In `watchlist_app/views.py`:
+
+```python
+from django.http import JsonResponse
+from watchlist_app.models import Movie
+
+def movie_detail(request, pk):
+    movie = Movie.objects.get(pk=pk)
+
+    data = {
+        "name":        movie.name,
+        "description": movie.description,
+        "active":      movie.active,
+    }
+
+    return JsonResponse(data)
+```
+
+### Why Build the Dictionary Manually?
+
+`.get(pk=pk)` returns a **single model instance**, not a QuerySet. You cannot call `.values()` on it. Each field must be accessed individually via dot notation (`movie.name`, etc.) and placed into a dictionary.
+
+---
+
+## URL Configuration
+
+In `watchlist_app/urls.py`:
+
+```python
+from django.urls import path
+from watchlist_app import views
+
+urlpatterns = [
+    path('list/',    views.movie_list,   name='movie-list'),
+    path('<int:pk>/', views.movie_detail, name='movie-detail'),
+]
+```
+
+| URL | Result |
+|---|---|
+| `/movie/list/` | All movies |
+| `/movie/1/` | Movie with ID 1 |
+| `/movie/2/` | Movie with ID 2 |
+
+---
+
+## Sample Response
+
+Visiting `/movie/1/`:
+
+```json
+{
+  "name": "Python vs Java",
+  "description": "Description one",
+  "active": true
+}
+```
+
+---
+
+## CRUD Overview
+
+For a complete API, every resource needs four operations:
+
+| Operation | Method | View Needed |
+|---|---|---|
+| **Create** | `POST` | Write to DB from request body |
+| **Retrieve** | `GET` | Read from DB and return |
+| **Update** | `PUT` | Read existing, update fields, save |
+| **Delete** | `DELETE` | Remove object from DB |
+
+Doing all of this manually for every model, every field, every method — is time-consuming and error-prone.
+
+---
+
+## Why DRF Is the Solution
+
+| Manual Approach | DRF Approach |
+|---|---|
+| Map every field manually | Serializer maps fields automatically |
+| Parse JSON from request manually | `serializer.is_valid()` + `serializer.save()` |
+| No built-in validation | Field-level and object-level validators |
+| Repetitive boilerplate | Reusable serializer + view classes |
+
+> **Next:** Install Django REST Framework and begin using serializers.

@@ -1,0 +1,136 @@
+---
+title: Models
+description: Creating Django models, applying migrations, registering models in admin, and adding test data
+lecture: "007"
+topic: Models and Migrations
+tags: [django, models, migrations, admin, database]
+sidebar_position: 2
+---
+
+# Django models
+---
+
+## Workflow Overview
+
+```
+Define Model → Make Migrations → Migrate → Register in Admin → Test
+```
+
+---
+
+## Step 1: Register the App
+
+In `watchmate/settings.py`, add your app to `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'watchlist_app',   # Add your app here
+]
+```
+
+---
+
+## Step 2: Define the Model
+
+In `watchlist_app/models.py`:
+
+```python
+from django.db import models
+
+class Movie(models.Model):
+    name        = models.CharField(max_length=50)
+    description = models.CharField(max_length=200)
+    active      = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `CharField` | Movie title, max 50 characters |
+| `description` | `CharField` | Short description, max 200 characters |
+| `active` | `BooleanField` | Whether the movie is published (default: `True`) |
+
+---
+
+## Step 3: Create and Apply Migrations
+
+```bash
+# Convert model to SQL migration files
+python manage.py makemigrations
+
+# Apply migrations to the database
+python manage.py migrate
+```
+
+> Django's ORM converts Python model definitions into SQL queries automatically — this is one of Django's biggest advantages.
+
+The migration file is created inside `watchlist_app/migrations/0001_initial.py`.
+
+---
+
+## Step 4: Create a Superuser
+
+```bash
+python manage.py createsuperuser
+# Enter username, email (optional), and password
+```
+
+> Use a strong password in production. For development, a simple password is fine.
+
+---
+
+## Step 5: Register Model in Admin
+
+In `watchlist_app/admin.py`:
+
+```python
+from django.contrib import admin
+from watchlist_app.models import Movie
+
+admin.site.register(Movie)
+```
+
+---
+
+## Step 6: Add Test Data
+
+Start the server and visit `http://127.0.0.1:8000/admin/`:
+
+```bash
+python manage.py runserver
+```
+
+Log in and add sample movies:
+
+| Movie Name | Description |
+|---|---|
+| Python vs Java | Description one |
+| JavaScript The End | Description two |
+
+---
+
+## Step 7: Create `urls.py` in the App
+
+Create a new file `watchlist_app/urls.py` for app-level URL routing:
+
+```python
+from django.urls import path
+from watchlist_app import views
+
+urlpatterns = [
+    path('list/', views.movie_list, name='movie-list'),
+]
+```
+
+In `watchmate/urls.py`, include the app URLs:
+
+```python
+from django.urls import path, include
+
+urlpatterns = [
+    path('movie/', include('watchlist_app.urls')),
+]
+```

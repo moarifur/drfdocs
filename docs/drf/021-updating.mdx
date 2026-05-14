@@ -1,0 +1,148 @@
+---
+title: Updating
+description: Restructuring Django models for the IMDB clone project — introducing WatchList and StreamPlatform models with proper field design
+lecture: "021"
+topic: Updating Models
+tags: [django, models, watchlist, streaming-platform, migrations, restructure]
+sidebar_position: 10
+---
+
+# Restructuring models
+---
+
+## Why Restructure?
+
+The initial `Movie` model was a placeholder. For the real IMDB Clone project, we need:
+
+1. A more meaningful model name (`WatchList` instead of `Movie` — to support films, web shows, podcasts)
+2. A second model (`StreamPlatform`) to represent platforms like Netflix, Prime Video, Disney+
+3. A relationship between the two models (handled via nested serializers, covered in the next lecture)
+
+---
+
+## New Model: `WatchList`
+
+```python
+from django.db import models
+
+class WatchList(models.Model):
+    title       = models.CharField(max_length=50)
+    storyline   = models.CharField(max_length=200)
+    active      = models.BooleanField(default=True)
+    created     = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `title` | `CharField` | Name of the film/show/podcast |
+| `storyline` | `CharField` | Brief description |
+| `active` | `BooleanField` | Is this title available? (default: `True`) |
+| `created` | `DateTimeField` | Auto-set on object creation |
+
+> `auto_now_add=True` means the timestamp is saved once at creation and never updated.
+
+---
+
+## New Model: `StreamPlatform`
+
+```python
+class StreamPlatform(models.Model):
+    name    = models.CharField(max_length=30)
+    about   = models.CharField(max_length=150)
+    website = models.URLField(max_length=100)
+
+    def __str__(self):
+        return self.name
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `name` | `CharField` | Platform name (e.g., Netflix) |
+| `about` | `CharField` | Short description of the platform |
+| `website` | `URLField` | Official website URL |
+
+---
+
+## Reset and Migrate
+
+Because the old `Movie` model is removed, delete the old database and regenerate:
+
+```bash
+# 1. Delete db.sqlite3
+
+# 2. Apply new migrations
+python manage.py makemigrations
+python manage.py migrate
+
+# 3. Create a new superuser
+python manage.py createsuperuser
+```
+
+---
+
+## Register Models in Admin
+
+In `watchlist_app/admin.py`:
+
+```python
+from django.contrib import admin
+from watchlist_app.models import WatchList, StreamPlatform
+
+admin.site.register(WatchList)
+admin.site.register(StreamPlatform)
+```
+
+---
+
+## Updated Serializers
+
+### `WatchListSerializer`
+
+```python
+class WatchListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = WatchList
+        fields = '__all__'
+```
+
+### `StreamPlatformSerializer`
+
+```python
+class StreamPlatformSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = StreamPlatform
+        fields = '__all__'
+```
+
+---
+
+## Updated URLs
+
+```python
+from django.urls import path
+from watchlist_app.api.views import (
+    WatchListAV, WatchDetailAV,
+    StreamPlatformAV
+)
+
+urlpatterns = [
+    path('list/',      WatchListAV.as_view(),     name='watch-list'),
+    path('<int:pk>/',  WatchDetailAV.as_view(),   name='watch-detail'),
+    path('stream/',    StreamPlatformAV.as_view(), name='stream-list'),
+]
+```
+
+---
+
+## Next Steps
+
+| Task | Description |
+|---|---|
+| Nested Serializers | Connect `WatchList` to `StreamPlatform` |
+| Foreign Key | Add `platform` ForeignKey to `WatchList` |
+| `StreamPlatformDetail` | View to GET/PUT/DELETE individual platform |
+
+> **Homework:** Try creating the `StreamPlatformDetail` view on your own before the next lecture.

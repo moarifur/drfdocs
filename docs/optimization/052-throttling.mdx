@@ -1,0 +1,107 @@
+---
+title: Throttling
+description: Introduction to request throttling in Django REST Framework — what it is, why it matters, and how it works
+lesson: 52
+topic: Throttling Introduction
+sidebar_position: 1
+---
+
+# Throttling
+---
+## Overview
+
+Throttling limits how many requests a user can make to your API within a given time window. While **permissions** control *who* can access a resource, throttling controls *how often* they can access it.
+
+A common real-world example is Medium — unregistered users can only read 25–30 articles before being prompted to create an account. The same pattern can be applied to any DRF API.
+
+---
+
+## Why Use Throttling?
+
+| Reason | Description |
+|--------|-------------|
+| **Protect against bots** | Bots can hammer an open API with unlimited requests |
+| **Monetize API access** | Sell tiered plans with different request limits |
+| **Rate-limit free users** | Encourage registration by capping anonymous access |
+| **Reduce server load** | Prevent any single user from overwhelming resources |
+
+---
+
+## Types of Throttling
+
+DRF provides two built-in throttle classes:
+
+| Class | Applies To | Identified By |
+|-------|-----------|---------------|
+| `AnonRateThrottle` | Anonymous (unauthenticated) users | IP address |
+| `UserRateThrottle` | Authenticated (registered) users | User ID or username |
+
+There is also a third type — **scoped throttling** — which lets you apply different limits to different views. This is covered in the next lesson.
+
+---
+
+## Rate Format
+
+Rates are expressed as `number/period`:
+
+```
+"10/second"    # 10 requests per second
+"100/minute"   # 100 requests per minute
+"1000/day"     # 1000 requests per day
+```
+
+---
+
+## Application Levels
+
+Throttling can be applied at two levels:
+
+### 1. Global (All Views)
+
+Set in `settings.py` under `REST_FRAMEWORK`. This applies to every view in the project.
+
+```python
+# settings.py
+REST_FRAMEWORK = {
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '10/day',
+        'user': '50/day',
+    }
+}
+```
+
+### 2. Local (Per View / Class)
+
+Set directly on a view class using `throttle_classes`. Only that view is throttled.
+
+```python
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+
+class ReviewList(generics.ListAPIView):
+    throttle_classes = [AnonRateThrottle, UserRateThrottle]
+    ...
+```
+
+---
+
+## How Users Are Identified
+
+| User Type | Identification Method |
+|-----------|----------------------|
+| Anonymous | IP address |
+| Authenticated | User ID (from token or session) |
+
+---
+
+## Key Takeaway
+
+Throttling is most valuable when you are:
+- Offering a **public or free-tier API**
+- Selling **tiered API access** (e.g. 100 req/day free, 10,000 req/day paid)
+- Protecting against **abuse or bots**
+
+> In the next lesson, we implement `AnonRateThrottle` and `UserRateThrottle` globally and per-view with live testing.

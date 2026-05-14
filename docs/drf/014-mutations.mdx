@@ -1,0 +1,137 @@
+---
+title: Mutations
+description: Implementing POST, PUT, and DELETE requests using DRF serializers with create() and update() methods
+lecture: "014"
+topic: Serializers — POST, PUT, DELETE Request
+tags: [drf, post, put, delete, serializer, create, update]
+sidebar_position: 3
+---
+
+# Mutations
+---
+
+## Goal
+
+Extend the movie API to support creating, updating, and deleting movies using DRF serializers.
+
+---
+
+## Serializer: `create()` and `update()` Methods
+
+In `watchlist_app/api/serializers.py`:
+
+```python
+from rest_framework import serializers
+from watchlist_app.models import Movie
+
+class MovieSerializer(serializers.Serializer):
+    id          = serializers.IntegerField(read_only=True)
+    name        = serializers.CharField()
+    description = serializers.CharField()
+    active      = serializers.BooleanField()
+
+    def create(self, validated_data):
+        return Movie.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.name        = validated_data.get('name',        instance.name)
+        instance.description = validated_data.get('description', instance.description)
+        instance.active      = validated_data.get('active',      instance.active)
+        instance.save()
+        return instance
+```
+
+| Method | Triggered When | Purpose |
+|---|---|---|
+| `create(validated_data)` | `serializer.save()` on POST | Creates a new DB record |
+| `update(instance, validated_data)` | `serializer.save()` on PUT | Updates existing DB record |
+
+> `validated_data` is populated after calling `serializer.is_valid()`.
+
+---
+
+## Views: GET + POST (List Endpoint)
+
+```python
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from watchlist_app.models import Movie
+from watchlist_app.api.serializers import MovieSerializer
+
+@api_view(['GET', 'POST'])
+def movie_list(request):
+    if request.method == 'GET':
+        movies = Movie.objects.all()
+        serializer = MovieSerializer(movies, many=True)
+        return Response(serializer.data)
+
+    if request.method == 'POST':
+        serializer = MovieSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
+
+---
+
+## Views: GET + PUT + DELETE (Detail Endpoint)
+
+```python
+@api_view(['GET', 'PUT', 'DELETE'])
+def movie_detail(request, pk):
+    movie = Movie.objects.get(pk=pk)
+
+    if request.method == 'GET':
+        serializer = MovieSerializer(movie)
+        return Response(serializer.data)
+
+    if request.method == 'PUT':
+        serializer = MovieSerializer(movie, data=request.data)  # Pass instance!
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    if request.method == 'DELETE':
+        movie.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+```
+
+---
+
+## Key: Pass `instance` for PUT
+
+```python
+# POST — no instance (creating new)
+serializer = MovieSerializer(data=request.data)
+
+# PUT — pass instance (updating existing)
+serializer = MovieSerializer(movie, data=request.data)
+```
+
+Forgetting to pass `instance` on a PUT request causes a new object to be created instead of updating the existing one.
+
+---
+
+## Request Flow Summary
+
+| Method | Endpoint | What Happens |
+|---|---|---|
+| `GET` | `/watch/list/` | Returns all movies |
+| `POST` | `/watch/list/` | Creates a new movie |
+| `GET` | `/watch/<pk>/` | Returns one movie |
+| `PUT` | `/watch/<pk>/` | Fully updates one movie |
+| `DELETE` | `/watch/<pk>/` | Deletes one movie |
+
+---
+
+## PUT vs PATCH
+
+| Method | Behavior |
+|---|---|
+| `PUT` | Replaces the **entire** resource — all fields required |
+| `PATCH` | Partial update — only send the fields you want to change |

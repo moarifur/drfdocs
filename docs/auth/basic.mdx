@@ -1,0 +1,94 @@
+---
+title: Basic
+description: Implementing Basic Authentication in DRF — how it works, how to configure it, and its limitations
+sidebar_position: 6
+---
+
+# Basic Authentication
+---
+## What Is Basic Authentication?
+
+Basic Authentication sends the user's credentials (username and password) encoded as Base64 in every request header. It is the simplest form of authentication supported by DRF and HTTP.
+
+> **Important:** Basic Authentication is recommended for testing only. Neither DRF nor Django recommend it for production use because credentials are sent with every single request.
+
+---
+
+## Configuration
+
+Add the authentication class to `settings.py`:
+
+```python
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+```
+
+Once added, this applies to every view in the project.
+
+---
+
+## How Credentials Are Sent
+
+Basic Authentication requires the username and password to be Base64-encoded and passed in the `Authorization` header:
+
+```
+Authorization: Basic <base64_encoded_credentials>
+```
+
+### Encoding in Postman
+
+1. Convert `username:password` to Base64 using any online encoder (e.g. `base64encode.org`)
+2. In Postman, go to **Headers** and add:
+- Key: `Authorization`
+- Value: `Basic <your_encoded_string>`
+
+Sending the raw username/password without encoding will return an error.
+
+---
+
+## Testing the Flow
+
+**Without credentials:**
+```json
+401 Unauthorized — "Authentication credentials were not provided."
+```
+
+**With correct Base64 credentials:**
+```
+200 OK — data returned
+```
+
+---
+
+## Object-Level Authentication
+
+If you only want a specific class to use Basic Authentication (rather than the whole project), define it at the view level:
+
+```python
+from rest_framework.authentication import BasicAuthentication
+
+class ReviewList(generics.ListCreateAPIView):
+    authentication_classes = [BasicAuthentication]
+    ...
+```
+
+This is useful when mixing authentication types — for example, one set of endpoints uses token auth for a mobile app while another uses basic auth for an internal tool.
+
+---
+
+## Removing the Temporary Login
+
+Once Basic Authentication is set up in Postman, remove the temporary DRF login URL from `urls.py`:
+
+```python
+# Remove this line
+path('api-auth/', include('rest_framework.urls')),
+```
+
+From this point forward, all authentication is handled through Postman or actual client requests — not the browsable API login form.

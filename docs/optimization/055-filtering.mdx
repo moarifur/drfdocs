@@ -1,0 +1,118 @@
+---
+title: Filtering
+description: Introduction to filtering, searching, and ordering in Django REST Framework — concepts and manual implementation via get_queryset()
+lesson: 55
+topic: Filtering Introduction
+sidebar_position: 4
+---
+
+# Filtering
+---
+## Overview
+
+Filtering lets clients extract specific subsets of data from an API. DRF supports three distinct filter operations, each with its own purpose:
+
+| Type | Description | Example |
+|------|-------------|---------|
+| **Filter** | Exact match on a field | `/reviews/?active=true` |
+| **Search** | Partial text match across one or more fields | `/watch/?search=batman` |
+| **Ordering** | Sort results by a field, ascending or descending | `/watch/?ordering=avg_rating` |
+
+---
+
+## Real-World Analogy
+
+On Amazon's search page:
+
+- **Filter** — Narrow by brand, rating (exact values)
+- **Search** — `/s?k=laptop` — keyword in the URL
+- **Ordering** — Sort by price low-to-high or average review
+
+The URL pattern `?keyword=laptop` is the query parameter approach DRF uses natively.
+
+---
+
+## Method 1 — Filtering via `get_queryset()`
+
+The simplest approach: override `get_queryset()` to filter based on a URL path parameter.
+
+```python
+class UserReviewList(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        username = self.kwargs['username']
+        return Review.objects.filter(review_user__username=username)
+```
+
+**URL pattern:**
+
+```python
+path('review/<str:username>/', UserReviewList.as_view(), name='user-review-detail'),
+```
+
+Use `__username` (double underscore) when traversing a ForeignKey to reach a field on the related model.
+
+---
+
+## Method 2 — Filtering via Query Parameters
+
+Instead of embedding the value in the URL path, the client passes it as a query parameter:
+
+```
+GET /review/?username=john
+```
+
+```python
+class UserReviewList(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        username = self.request.query_params.get('username', None)
+        return Review.objects.filter(review_user__username=username)
+```
+
+This mirrors how Amazon passes `?k=laptop` — a named parameter with a client-supplied value.
+
+---
+
+## Method 3 — Generic Filtering via `django-filter` Package
+
+The recommended approach for production. Install the package:
+
+```bash
+pip install django-filter
+```
+
+Add to `INSTALLED_APPS`:
+
+```python
+INSTALLED_APPS = [
+    ...
+    'django_filters',
+]
+```
+
+This package is used in the next lesson for implementing filter, search, and ordering on generic views.
+
+> **Note:** `django-filter` only works with **Generic API Views** (`ListAPIView`, `RetrieveAPIView`, etc.). It cannot be applied to plain `APIView` or function-based views.
+
+---
+
+## Filtering Against a ForeignKey
+
+When filtering by a related model's field, use Django's double-underscore (`__`) lookup syntax:
+
+```python
+# Filter by the username of the ForeignKey `review_user`
+Review.objects.filter(review_user__username='john')
+
+# Filter by an integer field directly (no ForeignKey traversal needed)
+Review.objects.filter(rating=5)
+```
+
+---
+
+## Key Takeaway
+
+All three filtering approaches work behind the same principle: the client sends a value, your view captures it, and you pass it into a `filter()` call. The `django-filter` package automates this for generic views with minimal code. Use `get_queryset()` for custom logic that the package cannot handle.

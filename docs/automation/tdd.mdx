@@ -1,0 +1,111 @@
+---
+title: TDD
+description: Introduction to Test Driven Development — writing tests before writing views
+lecture: "068"
+topic: Software Development
+tags: [django, tdd, test-driven-development, best-practices]
+sidebar_position: 7
+---
+
+# TDD
+---
+## Overview
+
+Test Driven Development (TDD) — sometimes called **Test First Development** — is a software development methodology where tests are written **before** the implementation code. This lecture introduces the concept and contrasts it with the approach taken throughout this course.
+
+---
+
+## Two Development Approaches
+
+### 1. Development First (Used in This Course)
+
+The traditional flow used in this project:
+
+```
+Models → Serializers → Views → URLs → Tests
+```
+
+Development happens fully first, then tests are written to validate the completed functionality.
+
+### 2. Test Driven Development (TDD)
+
+```
+Models → Tests → Views → URLs
+```
+
+Tests are written immediately after the models are defined — before views and serializers exist. Once tests are written, the views are implemented to make those tests pass.
+
+---
+
+## Comparison Table
+
+| Aspect | Development First | Test Driven Development |
+|---|---|---|
+| Order | Build everything, then test | Write tests, then build to pass them |
+| Best for | Beginners, learning projects | Large teams, complex long-term projects |
+| Risk | May discover issues late | Catches issues early in the design phase |
+| Learning curve | Lower | Higher |
+| Industry use | Common | Strongly recommended for production systems |
+
+---
+
+## URL Pattern Convention in TDD
+
+When writing tests before views, URL naming patterns are assumed ahead of time and remain consistent:
+
+| Type | URL Pattern | Example |
+|---|---|---|
+| List endpoint | `resource-list` or `-list` | `stream-list`, `movie-list` |
+| Detail endpoint | `resource-detail` or `-detail` | `stream-detail`, `movie-detail` |
+
+This predictability allows tests to be written using `reverse()` before the actual URLs and views are wired up.
+
+---
+
+## How TDD Works in Practice
+
+```
+1. Write model
+2. Write test for "create" → test fails (view doesn't exist yet)
+3. Write the view
+4. Run test → test passes
+5. Write test for "list" → test fails
+6. Write the view
+7. Run test → passes
+8. Repeat for update, delete, permissions, etc.
+```
+
+This cycle is often called **Red → Green → Refactor**:
+
+- **Red**: Test fails (no implementation yet)
+- **Green**: Implementation added, test passes
+- **Refactor**: Clean up code while keeping tests green
+
+---
+
+## Recommendation
+
+> For beginners: get comfortable with Django REST Framework first — views, models, serializers, permissions. Once you understand how everything connects, adopt TDD on your next project.
+
+TDD is especially valuable in:
+- Large codebases with many contributors
+- Projects that evolve over time with frequent feature additions
+- Job interviews — familiarity with TDD is a strong signal of experience
+
+---
+
+## Further Reading
+
+Search for **"TDD Django REST Framework"** or **"Test Driven Development Python"** to find additional resources. Understanding TDD conceptually — even before applying it — is worthwhile for any developer pursuing professional Django work.
+
+---
+
+## Summary
+
+| Term | Meaning |
+|---|---|
+| TDD | Test Driven Development — write tests before implementation |
+| Red | Test is written and fails (no code yet) |
+| Green | Implementation added, test passes |
+| Refactor | Clean and optimize code without breaking tests |
+| Development First | Write full implementation, then write tests afterward |

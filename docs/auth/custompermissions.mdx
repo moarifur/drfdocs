@@ -1,0 +1,115 @@
+---
+title: CustomPermissions
+description: Writing custom DRF permission classes — has_permission and has_object_permission
+sidebar_position: 3
+---
+
+# Custom Permissions
+---
+## Why Custom Permissions?
+
+Built-in permission classes cover broad rules like "must be logged in" or "must be admin." But real projects need fine-grained logic — for example:
+
+- Only the user who wrote a review should be able to edit it
+- Anyone can read, but only admins can create or delete
+
+Custom permission classes handle these specific cases.
+
+---
+
+## Creating the Permissions File
+
+Create `watchlist_app/api/permissions.py` to keep all custom permission logic separate and importable:
+
+```python
+from rest_framework import permissions
+```
+
+---
+
+## Two Methods to Override
+
+| Method | When to Use |
+|--------|------------|
+| `has_permission(self, request, view)` | General check — applies to the entire view, not a specific object |
+| `has_object_permission(self, request, view, obj)` | Object-specific check — runs when accessing an individual instance |
+
+Both must return `True` (access granted) or `False` (access denied).
+
+---
+
+## Example 1: Admin or Read-Only
+
+Only admin users can write; everyone else gets read-only access:
+
+```python
+from rest_framework import permissions
+
+class AdminOrReadOnly(permissions.IsAdminUser):
+
+    def has_permission(self, request, view):
+        admin_permission = super().has_permission(request, view)
+
+        if request.method in permissions.SAFE_METHODS:
+            return True                    # GET is always allowed
+        return request.user.is_staff      # POST/PUT/DELETE requires staff status
+```
+
+`SAFE_METHODS` contains `GET`, `HEAD`, and `OPTIONS` — methods that do not modify data.
+
+---
+
+## Example 2: Review Owner or Read-Only
+
+Only the user who created a review can edit or delete it. Everyone can read:
+
+```python
+class ReviewUserOrReadOnly(permissions.BasePermission):
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True                                    # Anyone can read
+        return obj.review_user == request.user            # Only the author can write
+```
+
+`obj.review_user` is the `ForeignKey` on the `Review` model pointing to the user who created it. `request.user` is the currently authenticated user.
+
+---
+
+## Adding Admin Edit Access
+
+To also allow admin users to edit any review, extend the condition:
+
+```python
+def has_object_permission(self, request, view, obj):
+    if request.method in permissions.SAFE_METHODS:
+        return True
+    return obj.review_user == request.user or request.user.is_staff
+```
+
+---
+
+## Applying Custom Permissions to a View
+
+```python
+from watchlist_app.api.permissions import ReviewUserOrReadOnly, AdminOrReadOnly
+
+class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [ReviewUserOrReadOnly]
+    ...
+
+class WatchList(generics.ListCreateAPIView):
+    permission_classes = [AdminOrReadOnly]
+    ...
+```
+
+---
+
+## has_permission vs has_object_permission
+
+| Scenario | Use |
+|----------|-----|
+| "Can this user access this view at all?" | `has_permission` |
+| "Can this user act on this specific object?" | `has_object_permission` |
+
+`has_object_permission` is only called after `has_permission` returns `True`, so both can be used together on the same class.

@@ -1,0 +1,188 @@
+---
+title: StreamPlatform
+description: API testing for the StreamPlatform model — create, list, and detail endpoints with permission testing
+lecture: "064"
+topic: API Testing
+tags: [django, rest-framework, testing, streamplatform, permissions]
+sidebar_position: 3
+---
+
+# StreamPlatform
+---
+## Overview
+
+This lecture covers test cases for the `StreamPlatform` model. It demonstrates how to test admin-only endpoints, validate permission responses (`403 Forbidden`), list resources, and access individual elements using URL kwargs.
+
+The test sequence follows the model dependency order:
+```
+StreamPlatform → WatchList → Review
+```
+A WatchList (movie) requires a platform, and a Review requires a movie — so StreamPlatform must be tested first.
+
+---
+
+## Imports
+
+```python
+from django.contrib.auth.models import User
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework.authtoken.models import Token
+from watchlist_app.api import serializers
+from watchlist_app import models
+```
+
+---
+
+## `setUp` — User Creation and Authentication
+
+Every test method in the class will run after this setup:
+
+```python
+class StreamPlatformTestCase(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="example",
+            password="Password@123"
+        )
+        self.token = Token.objects.get(user__username=self.user.username)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+        # Manually create a StreamPlatform so tests can access individual items
+        self.stream = models.StreamPlatform.objects.create(
+            name="Netflix",
+            about="A streaming service",
+            website="https://www.netflix.com"
+        )
+```
+
+> The stream platform is created manually (not via API) so tests that access individual elements have a known object to reference.
+
+---
+
+## Test: Create — Permission Check
+
+Normal users are not allowed to create a StreamPlatform — only admins can. A normal authenticated user should receive `403 Forbidden`.
+
+```python
+def test_streamplatform_create(self):
+    data = {
+        "name": "Netflix",
+        "about": "A streaming service",
+        "website": "https://www.netflix.com"
+    }
+    response = self.client.post(reverse('streamplatform-list'), data)
+    self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+```
+
+### Permission Response Reference
+
+| User Type | Action | Expected Status |
+|---|---|---|
+| Unauthenticated | Any request | `401 Unauthorized` |
+| Normal user | POST/PUT/DELETE (admin-only) | `403 Forbidden` |
+| Admin user | POST/PUT/DELETE | `201 Created` / `200 OK` |
+| Any user | GET (read-only) | `200 OK` |
+
+---
+
+## Test: List — GET All Platforms
+
+```python
+def test_streamplatform_list(self):
+    response = self.client.get(reverse('streamplatform-list'))
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+No request body is needed for GET requests. The response should be `200 OK`.
+
+---
+
+## Test: Individual Element — GET by ID
+
+To access a single platform, pass the `pk` (primary key) as a `kwargs` argument inside `reverse()`:
+
+```python
+def test_streamplatform_individual(self):
+    response = self.client.get(
+        reverse('streamplatform-detail', kwargs={'pk': self.stream.pk})
+    )
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+### How `reverse` with `kwargs` Works
+
+```python
+# Without kwargs — list endpoint
+reverse('streamplatform-list')
+# Result: /watch/stream/
+
+# With kwargs — detail endpoint
+reverse('streamplatform-detail', kwargs={'pk': 1})
+# Result: /watch/stream/1/
+```
+
+---
+
+## Full Test Class
+
+```python
+class StreamPlatformTestCase(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="example",
+            password="Password@123"
+        )
+        self.token = Token.objects.get(user__username=self.user.username)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        self.stream = models.StreamPlatform.objects.create(
+            name="Netflix",
+            about="A streaming service",
+            website="https://www.netflix.com"
+        )
+
+    def test_streamplatform_create(self):
+        data = {
+            "name": "Netflix",
+            "about": "A streaming service",
+            "website": "https://www.netflix.com"
+        }
+        response = self.client.post(reverse('streamplatform-list'), data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_streamplatform_list(self):
+        response = self.client.get(reverse('streamplatform-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_streamplatform_individual(self):
+        response = self.client.get(
+            reverse('streamplatform-detail', kwargs={'pk': self.stream.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+```
+
+---
+
+## Homework
+
+As a follow-up exercise, write two additional test methods for the StreamPlatform:
+
+| Method | Endpoint | Expected Status (normal user) |
+|---|---|---|
+| `test_streamplatform_update` | PUT `/watch/stream/<pk>/` | `403 Forbidden` |
+| `test_streamplatform_delete` | DELETE `/watch/stream/<pk>/` | `403 Forbidden` |
+
+Both should return `403 Forbidden` because normal users do not have write access to stream platforms.
+
+---
+
+## Summary
+
+| Test | Request | Expected Response |
+|---|---|---|
+| Create (normal user) | `POST /stream/` | `403 Forbidden` |
+| List | `GET /stream/` | `200 OK` |
+| Individual detail | `GET /stream/<pk>/` | `200 OK` |

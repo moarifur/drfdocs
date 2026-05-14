@@ -60,21 +60,57 @@ const config = {
         items: [
           {
             type: 'docSidebar',
-            sidebarId: 'installationSidebar',
+            sidebarId: 'foundationSidebar',
             position: 'left',
-            label: 'Installation',
+            label: 'Foundations',
           },
           {
             type: 'docSidebar',
-            sidebarId: 'foundationSidebar',
+            sidebarId: 'coreSidebar',
             position: 'left',
-            label: 'Foundation',
+            label: 'Core',
           },
           {
             type: 'docSidebar',
             sidebarId: 'drfSidebar',
             position: 'left',
             label: 'DRF',
+          },
+          {
+            type: 'docSidebar',
+            sidebarId: 'relationshipSidebar',
+            position: 'left',
+            label: 'Relationships',
+          },
+          {
+            type: 'docSidebar',
+            sidebarId: 'routingSidebar',
+            position: 'left',
+            label: 'Routing',
+          },
+          {
+            type: 'docSidebar',
+            sidebarId: 'authSidebar',
+            position: 'left',
+            label: 'Auth',
+          },
+          {
+            type: 'docSidebar',
+            sidebarId: 'optimizationSidebar',
+            position: 'left',
+            label: 'Optimization',
+          },
+          {
+            type: 'docSidebar',
+            sidebarId: 'automationSidebar',
+            position: 'left',
+            label: 'Testing(Automation)',
+          },
+          {
+            type: 'docSidebar',
+            sidebarId: 'deploySidebar',
+            position: 'left',
+            label: 'Deployment',
           },
           {
             href: 'https://github.com/moarifur',

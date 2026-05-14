@@ -1,0 +1,126 @@
+---
+title: Ratings
+description: Adding average rating and review count fields to the WatchList model with auto-calculation
+sidebar_position: 4
+---
+
+# Ratings
+---
+## Goal
+
+Add two computed fields to the `WatchList` model that update automatically whenever a new review is submitted:
+
+- `avg_rating` — the running average of all ratings for that movie
+- `number_rating` — the total count of reviews
+
+This mirrors how IMDB shows a movie's overall score alongside the number of ratings.
+
+---
+
+## URL Structure Update
+
+Restructure the review URL to be nested under the movie it belongs to:
+
+```
+/watch/<movie_id>/review/         → List all reviews for a movie
+/watch/<movie_id>/review-create/  → Submit a new review
+/watch/review/<review_id>/        → View or edit a single review
+```
+
+This makes the relationship between movies and reviews explicit in the URL.
+
+---
+
+## Updating the Model
+
+Add two new fields to `WatchList` in `models.py`:
+
+```python
+class WatchList(models.Model):
+    title         = models.CharField(max_length=50)
+    storyline     = models.CharField(max_length=200)
+    platform      = models.ForeignKey(StreamPlatform, on_delete=models.CASCADE, related_name='watchlist')
+    active        = models.BooleanField(default=True)
+    avg_rating    = models.FloatField(default=0)    # float to support 4.5, 4.75 etc.
+    number_rating = models.IntegerField(default=0)  # integer count of reviews
+    created       = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+```
+
+Using `default=0` prevents migration errors and avoids asking for a default value during `makemigrations`.
+
+---
+
+## Calculation Logic in the View
+
+Inside `ReviewCreate`, override `perform_create` to update the rating fields every time a review is saved:
+
+```python
+def perform_create(self, serializer):
+    pk = self.kwargs.get('pk')
+    watchlist = WatchList.objects.get(pk=pk)
+
+    review_user = self.request.user
+    review_queryset = Review.objects.filter(watchlist=watchlist, review_user=review_user)
+
+    if review_queryset.exists():
+        raise ValidationError("You have already reviewed this movie.")
+
+    if watchlist.number_rating == 0:
+        watchlist.avg_rating = serializer.validated_data['rating']
+    else:
+        watchlist.avg_rating = (
+            watchlist.avg_rating + serializer.validated_data['rating']
+        ) / 2
+
+    watchlist.number_rating += 1
+    watchlist.save()
+
+    serializer.save(watchlist=watchlist, review_user=review_user)
+```
+
+**Step-by-step logic:**
+
+| Step | What Happens |
+|------|-------------|
+| Check for existing review | A user can only review each movie once |
+| `number_rating == 0` | First review: `avg_rating` equals the submitted rating directly |
+| `number_rating > 0` | Subsequent reviews: new average = (old average + new rating) / 2 |
+| Increment count | `number_rating` increases by one |
+| Save | Persist the updated fields to the database |
+
+---
+
+## Apply Migrations
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+---
+
+## Verifying in the API
+
+After submitting a review with a rating of `5`, visiting the movie endpoint shows:
+
+```json
+{
+  "id": 2,
+  "title": "Spider-Man",
+  "avg_rating": 5.0,
+  "number_rating": 1,
+  ...
+}
+```
+
+After a second user submits a rating of `4`:
+
+```json
+{
+  "avg_rating": 4.5,
+  "number_rating": 2
+}
+```

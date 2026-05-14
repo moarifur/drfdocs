@@ -1,0 +1,130 @@
+---
+title: JWTLogin
+description: Generating and using JWT access and refresh tokens in Postman
+sidebar_position: 13
+---
+
+# JWTLogin
+---
+
+## Obtaining Tokens
+
+Send a `POST` request to `/account/api/token/`:
+
+- **Body** → form-data (or raw JSON)
+- `username`: your username
+- `password`: your password
+
+**Response:**
+
+```json
+{
+  "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "access":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+Both tokens are returned immediately. Store both — the access token for immediate use, the refresh token for regeneration later.
+
+---
+
+## Token Contents
+
+Paste either token into [jwt.io](https://jwt.io) to inspect the decoded payload:
+
+```json
+{
+  "token_type": "access",
+  "exp": 1716900000,
+  "iat": 1716899700,
+  "jti": "unique-jwt-id",
+  "user_id": 1
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `token_type` | `access` or `refresh` |
+| `exp` | Expiry timestamp (Unix epoch) |
+| `user_id` | The Django user's primary key |
+| `jti` | Unique JWT identifier |
+
+Each token carries the `user_id`, so the server can identify the user without a database lookup.
+
+---
+
+## Using the Access Token
+
+Include it in every request header:
+
+```
+Authorization: Bearer <access_token>
+```
+
+Note: JWT uses `Bearer`, not `Token` (which is used for DRF's regular token authentication).
+
+---
+
+## Token Expiry
+
+After 5 minutes, the access token expires and requests return:
+
+```json
+{
+  "detail": "Given token not valid for any token type",
+  "code": "token_not_valid",
+  "messages": [{"token_class": "AccessToken", "message": "Token is expired"}]
+}
+```
+
+---
+
+## Regenerating the Access Token
+
+Send a `POST` request to `/account/api/token/refresh/`:
+
+- **Body** → form-data
+- `refresh`: your refresh token
+
+**Response:**
+
+```json
+{
+  "access": "new_access_token_here"
+}
+```
+
+Replace the old access token on the client with this new one. The refresh token itself remains the same unless `ROTATE_REFRESH_TOKENS` is enabled.
+
+---
+
+## Rotating Refresh Tokens
+
+To receive a new refresh token on every refresh request, add to `settings.py`:
+
+```python
+SIMPLE_JWT = {
+    'ROTATE_REFRESH_TOKENS': True,
+}
+```
+
+With this enabled, every call to `/api/token/refresh/` returns both a new access token and a new refresh token. The old refresh token becomes invalid.
+
+---
+
+## No Database Table
+
+Unlike DRF's standard token auth, JWT does not create any new database table. There is no `Tokens` section in the Django admin panel for JWT tokens — they exist only as signed strings on the client.
+
+---
+
+## Token Verification (Optional)
+
+DRF simple JWT also provides a verification endpoint:
+
+```
+POST /api/token/verify/
+Body: { "token": "<access_or_refresh_token>" }
+```
+
+Returns `200 OK` if valid, or an error if expired or tampered with. Useful for frontend pre-validation.

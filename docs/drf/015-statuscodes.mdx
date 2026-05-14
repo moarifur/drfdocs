@@ -1,0 +1,114 @@
+---
+title: StatusCodes
+description: Using DRF status codes to communicate the result of API requests, including error handling with try/except
+lecture: "015"
+topic: Status Codes
+tags: [drf, status-codes, http, error-handling, response]
+sidebar_position: 4
+---
+
+# Status Codes
+---
+
+## What Are Status Codes?
+
+Every HTTP response includes a **numeric status code** that tells the client what happened with their request. The entire web relies on these codes.
+
+---
+
+## Status Code Ranges
+
+| Range | Category | Common Examples |
+|---|---|---|
+| `2xx` | **Success** | `200 OK`, `201 Created`, `204 No Content` |
+| `3xx` | **Redirection** | `301 Moved Permanently`, `307 Temporary Redirect`, `308 Permanent Redirect` |
+| `4xx` | **Client Error** | `400 Bad Request`, `401 Unauthorized`, `404 Not Found` |
+| `5xx` | **Server Error** | `500 Internal Server Error`, `507 Insufficient Storage` |
+
+---
+
+## Importing Status in DRF
+
+```python
+from rest_framework import status
+```
+
+DRF provides named constants for all standard status codes:
+
+```python
+status.HTTP_200_OK
+status.HTTP_201_CREATED
+status.HTTP_204_NO_CONTENT
+status.HTTP_400_BAD_REQUEST
+status.HTTP_404_NOT_FOUND
+```
+
+---
+
+## Adding Status Codes to Responses
+
+```python
+@api_view(['GET', 'PUT', 'DELETE'])
+def movie_detail(request, pk):
+    try:
+        movie = Movie.objects.get(pk=pk)
+    except Movie.DoesNotExist:
+        return Response(
+            {"error": "Movie not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if request.method == 'GET':
+        serializer = MovieSerializer(movie)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    if request.method == 'PUT':
+        serializer = MovieSerializer(movie, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    if request.method == 'DELETE':
+        movie.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+```
+
+---
+
+## Status Codes Per Operation
+
+| Operation | Success Code | Error Code |
+|---|---|---|
+| `GET` (found) | `200 OK` | `404 Not Found` |
+| `POST` (created) | `201 Created` | `400 Bad Request` |
+| `PUT` (updated) | `200 OK` | `400 Bad Request` |
+| `DELETE` (deleted) | `204 No Content` | `404 Not Found` |
+
+---
+
+## `204 No Content`
+
+After a DELETE, there is no data to return. The correct response is:
+
+```python
+return Response(status=status.HTTP_204_NO_CONTENT)
+```
+
+The client receives a `204` status with an empty body — confirming the deletion was successful.
+
+---
+
+## Error Handling with `try/except`
+
+```python
+try:
+    movie = Movie.objects.get(pk=pk)
+except Movie.DoesNotExist:
+    return Response(
+        {"error": "Movie not found"},
+        status=status.HTTP_404_NOT_FOUND
+    )
+```
+
+Without this, accessing a non-existent ID raises an unhandled exception instead of returning a clean error response.

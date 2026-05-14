@@ -1,0 +1,154 @@
+---
+title: Registration
+description: API testing for user registration in Django REST Framework
+lecture: "062"
+topic: API Testing
+tags: [django, rest-framework, testing, registration]
+sidebar_position: 1
+---
+
+# Registration
+---
+## Overview
+
+Testing is a critical part of any software project — not just to validate the current codebase but to **future-proof** it. When new classes are added or new developers join the team and make changes, tests ensure that existing functionality remains unbroken.
+
+This lecture introduces API testing using Django REST Framework's test utilities, starting with the user registration endpoint.
+
+---
+
+## Why Testing Matters
+
+| Concern | Explanation |
+|---|---|
+| Current code validation | Ensures existing views, models, and endpoints behave as expected |
+| Future-proofing | Catches regressions when new features or teammates introduce changes |
+| Isolated execution | Django creates a **temporary test database** — your production database is never affected |
+
+---
+
+## Test File Structure
+
+Django looks for test files in each app folder. By default, every app comes with a `tests.py` file.
+
+### Naming Conventions
+
+- Test files must be named starting with `test` (e.g., `test_views.py`, `test_models.py`)
+- Test methods inside a class must also start with `test_`
+- Only `test_*` methods and `setUp`/`tearDown` are called automatically
+
+```
+watchlist_app/
+├── tests.py          ← default test file
+└── tests/            ← optional: folder for multiple test files
+    ├── test_views.py
+    └── test_models.py
+```
+
+---
+
+## Key Imports
+
+```python
+from django.contrib.auth.models import User
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework.authtoken.models import Token
+```
+
+| Import | Purpose |
+|---|---|
+| `User` | Default Django user model |
+| `reverse` | Resolves URL names to actual endpoint paths |
+| `status` | Provides HTTP status code constants (e.g., `status.HTTP_201_CREATED`) |
+| `APITestCase` | DRF's test case class with built-in API client |
+| `Token` | Auth token model for token-based authentication |
+
+---
+
+## Writing the Registration Test
+
+```python
+class RegisterTestCase(APITestCase):
+
+    def test_register(self):
+        data = {
+            "username": "testcase",
+            "email": "testcase@example.com",
+            "password": "Password@123",
+            "password2": "Password@123"
+        }
+        response = self.client.post(reverse('register'), data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+```
+
+### How It Works
+
+1. **Define test data** — a dictionary with the fields the registration endpoint expects.
+2. **Send a POST request** — using `self.client.post()` with the URL resolved via `reverse('register')`.
+3. **Assert the status code** — a successful registration should return `201 Created`.
+
+---
+
+## Fixing the View: Returning the Correct Status Code
+
+When running the test, an error may appear if the registration view returns `200 OK` instead of `201 Created`. Fix this by updating the view:
+
+```python
+# views.py — before fix
+return Response(serializer.data)  # defaults to 200 OK
+
+# views.py — after fix
+return Response(serializer.data, status=status.HTTP_201_CREATED)
+```
+
+---
+
+## Running Tests
+
+```bash
+# Run all tests across all apps
+python manage.py test
+
+# Run tests for a specific app only
+python manage.py test user_app
+```
+
+### Sample Output
+
+```
+Creating test database for alias 'default'...
+.
+----------------------------------------------------------------------
+Ran 1 test in 0.523s
+
+OK
+Destroying test database...
+```
+
+The test database is created fresh, used during the run, and then destroyed — your actual database is untouched.
+
+---
+
+## Adding More Assertions
+
+Beyond status codes, `assertEqual` can be used to validate any part of the response:
+
+```python
+self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+self.assertEqual(response.data['username'], 'testcase')
+```
+
+---
+
+## Summary
+
+| Step | Action |
+|---|---|
+| 1 | Import `User`, `reverse`, `status`, `APITestCase`, `Token` |
+| 2 | Create a class inheriting `APITestCase` |
+| 3 | Define a method starting with `test_` |
+| 4 | Build the request data dictionary |
+| 5 | Send request via `self.client.post(reverse(...), data)` |
+| 6 | Assert the response status code with `assertEqual` |
