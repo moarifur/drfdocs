@@ -1,0 +1,832 @@
+---
+title: "The Best Local Agentic Coding Workflow: Complete Guide"
+description: "A comprehensive guide to setting up a fully local, private, and fast AI coding environment — including model selection, hardware configuration, LM Studio setup, autocomplete, and agentic workflows in VS Code and terminal."
+author: "Kyle (WebDev Simplified)"
+source: "YouTube — WebDev Simplified"
+tags:
+  - local-ai
+  - lm-studio
+  - agentic-coding
+  - vs-code
+  - hugging-face
+  - open-source
+  - llm
+  - autocomplete
+  - pi-agent
+  - github-copilot
+difficulty: "Intermediate"
+resources:
+  - name: "LM Studio"
+url: "https://lmstudio.ai/"
+  - name: "Hugging Face"
+url: "https://huggingface.co/"
+  - name: "Pi Coding Agent"
+url: "https://pi.dev/"
+---
+
+# The Best Local Agentic Coding Workflow: Complete Guide
+
+> AI pricing is outrageous. Nearly all the monthly plans are completely gutted, which means you're stuck paying outrageous API pricing — which is why this guide walks you through setting up a local AI that runs entirely on your system: completely private, incredibly fast, with full autocomplete and full agent mode.
+
+This guide covers every concept from the ground up so it doesn't matter when you read it or what hardware you have — you will know how to set everything up perfectly for your exact situation.
+
+---
+
+## Table of Contents
+
+1. [How Local AI Models Actually Work](#how-local-ai-models-actually-work)
+2. [Understanding VRAM and RAM](#understanding-vram-and-ram)
+3. [Mac vs Windows vs Dedicated GPU](#mac-vs-windows-vs-dedicated-gpu)
+4. [Getting Started with LM Studio](#getting-started-with-lm-studio)
+5. [Finding and Downloading Models](#finding-and-downloading-models)
+6. [Understanding Model Parameters](#understanding-model-parameters)
+7. [Quantization Explained](#quantization-explained)
+8. [Model Capabilities: Vision, Tool Use, Reasoning](#model-capabilities-vision-tool-use-reasoning)
+9. [Loading Models in LM Studio](#loading-models-in-lm-studio)
+10. [GPU Offload and Context Length Configuration](#gpu-offload-and-context-length-configuration)
+11. [Performance: GPU vs System RAM](#performance-gpu-vs-system-ram)
+12. [Mixture of Experts (MoE) Models](#mixture-of-experts-moe-models)
+13. [Setting Up the LM Studio Developer Server](#setting-up-the-lm-studio-developer-server)
+14. [Setting Up Autocomplete in VS Code with Continue](#setting-up-autocomplete-in-vs-code-with-continue)
+15. [Configuring the Continue Extension (YAML)](#configuring-the-continue-extension-yaml)
+16. [Setting Up Chat and Agentic Mode in Continue](#setting-up-chat-and-agentic-mode-in-continue)
+17. [Setting Up GitHub Copilot with a Local Model](#setting-up-github-copilot-with-a-local-model)
+18. [Setting Up Pi (Terminal-Based Agentic Coding)](#setting-up-pi-terminal-based-agentic-coding)
+19. [Configuring Pi Models File](#configuring-pi-models-file)
+20. [Performance Comparison: Local vs Cloud Models](#performance-comparison-local-vs-cloud-models)
+21. [Hardware Recommendations and Cost Considerations](#hardware-recommendations-and-cost-considerations)
+22. [Quick Reference Tables](#quick-reference-tables)
+
+---
+
+## How Local AI Models Actually Work
+
+Before setting up local AI models, you need to understand how they run on your computer so you can configure them most efficiently.
+
+Every model is composed of two primary things you need to keep in mind:
+
+### Parameters
+
+Almost every model has a **number of parameters**. Parameters are the core of what makes a model intelligent. Examples:
+
+- 862 billion parameters — massive, cannot run locally
+- 128 billion parameters — very large, still difficult locally
+- 1 billion parameters — small, runs easily on modest hardware
+
+The number of parameters directly determines how capable and how large a model is. Larger parameter counts generally mean more intelligent responses, but require significantly more hardware resources.
+
+### Context Size
+
+The **context** is essentially how much information you can fit inside your model at one time. It represents the model's working memory — everything it can "see" at once, including:
+
+- Your conversation history
+- Codebase files you've opened
+- System prompts
+- Tool results
+
+> **Key point:** Newer and newer models tend to have larger and larger maximum context windows. This means they can hold more information, forget things less frequently, and are overall better at larger running tasks.
+
+When deciding on a model, you need to figure out:
+1. How many parameters the model has
+2. How large of a context you need
+
+These two factors together determine how much total memory the model requires.
+
+---
+
+## Understanding VRAM and RAM
+
+All local models run on your **GPU** (graphics card). The most important statistic you need to know about your GPU is its **VRAM** — Video RAM, or the dedicated memory inside your graphics card.
+
+### How Model Loading Works
+
+When you load a model, your system takes the entire model — all parameters and everything — and tries to push it directly into your GPU's VRAM.
+
+**Example scenario with a 16 GB GPU:**
+
+```
+GPU VRAM: [████████████████] 16 GB total
+
+Model fits:     [████████████    ] ← entire model in GPU = FAST ✅
+Model overflow: [████████████████] ← GPU full
+                [████            ] ← overflow goes to system RAM = SLOW ⚠️
+```
+
+If your model is larger than your GPU VRAM:
+
+1. Your GPU fills up as much as it can
+2. The remaining model spills over into your regular system RAM
+3. This **drastically slows down inference speed**
+
+### How to Check Your GPU VRAM on Windows
+
+Open **Task Manager** → **Performance** tab → look for **Dedicated GPU Memory**. That number is your VRAM. Your system RAM is shown separately — that's the overflow space.
+
+---
+
+## Mac vs Windows vs Dedicated GPU
+
+| Platform | Memory Type | Behavior | Notes |
+|---|---|---|---|
+| **Mac (Apple Silicon)** | Unified Memory | GPU and CPU share the same memory pool | Higher usable RAM numbers at lower price; no overflow possible |
+| **Windows / Linux with dedicated GPU** | Dedicated VRAM + System RAM | GPU has its own dedicated VRAM; overflow goes to system RAM | Smaller VRAM pool, but can be slightly faster; overflow is possible |
+
+> **Mac unified memory** means once you hit your RAM limit, there is no overflow. That's simply the maximum. However, it also means more of your total RAM can be used for the model compared to a dedicated GPU system where VRAM and system RAM are separate.
+
+---
+
+## Getting Started with LM Studio
+
+The best and easiest way to get started with local AI is **LM Studio**. It has an excellent user interface that explains all the complex concepts around RAM, VRAM, and model configuration in a clear, visual way.
+
+**Download:** [https://lmstudio.ai/](https://lmstudio.ai/)
+
+When you first open LM Studio, the model selector will be blank — you haven't downloaded any models yet. The next step is to find and download a model.
+
+---
+
+## Finding and Downloading Models
+
+You have two places to find models:
+
+### Option 1: LM Studio Built-in Browser
+
+1. Click the **Model tab** on the left sidebar
+2. Use the search bar to search for models by name
+3. LM Studio will show you available models with estimated RAM usage
+
+### Option 2: Hugging Face
+
+**URL:** [https://huggingface.co/](https://huggingface.co/)
+
+Hugging Face has a much larger catalog. Tips for finding good models:
+
+- **Sort by Trending** to surface popular models
+- Toggle **Inference Available** to filter for models with reasoning capability
+- Filter by **parameter count** to match your hardware
+
+Once you find a model on Hugging Face:
+
+1. Click on the model
+2. Click **"Use this model"**
+3. Scroll down to **"Browse Quantizations"** (the full models are too large for local use)
+4. Find a quantization from **Unsloth** (recommended for high-performance small quantizations)
+5. Click **"LM Studio"** from the use options → it will open LM Studio and pre-populate the download link
+
+---
+
+## Understanding Model Parameters
+
+Inside LM Studio's model browser, you'll see parameter counts alongside every model name. Here's how to read them:
+
+| Label | Meaning | Example |
+|---|---|---|
+| `1B` | 1 billion parameters | Very small, fast |
+| `9B` | 9 billion parameters | Small-medium |
+| `27B` | 27 billion parameters | Medium-large |
+| `35B` | 35 billion parameters | Large |
+| `862B` | 862 billion parameters | Massive, cloud-only |
+
+LM Studio also shows an **estimated RAM usage** on the right side of each model listing. For example:
+
+- Qwen 3.6 (27B) → ~17.48 GB VRAM required
+- Qwen 3.5 (9B) → ~6.55 GB VRAM required
+
+> **Rule of thumb:** If the model fits entirely in your GPU VRAM, it will run **way, way, way faster** than if it overflows into system RAM. Always aim to fit the whole model in your GPU if possible.
+
+---
+
+## Quantization Explained
+
+Quantization is the process of taking a large model and shrinking it by rounding its internal numerical weights to smaller, less precise numbers. This reduces file size at a slight cost to model quality.
+
+### Quantization Levels
+
+| Level | Description | Relative Size | Quality Impact |
+|---|---|---|---|
+| `16-bit` (FP16) | Raw, full-precision model. No changes. | 100% (baseline) | None — best quality |
+| `8-bit` (Q8) | Half the size of the full model. One round of quantization. | ~50% | Minimal |
+| `4-bit` (Q4) | ✅ **Recommended starting point.** Good balance of size and quality. | ~25% | Moderate — acceptable |
+| `3-bit` (Q3) | Good for fitting large models on limited VRAM | ~19% | Noticeable |
+| `2-bit` (Q2) | Use only when you need a very large model on very limited hardware | ~12% | Significant |
+
+### How Quantization Levels Are Named
+
+The base level is `16`. Each quantization step divides that:
+
+```
+16-bit = base model
+8-bit  = 16 ÷ 2 = one step of quantization
+4-bit  = 16 ÷ 4 = four levels from base (most common recommendation)
+```
+
+> **Start with Q4** — it's the sweet spot. From Q8 to Q4, you essentially halve the model size while keeping quality very usable for agentic coding tasks.
+
+---
+
+## Model Capabilities: Vision, Tool Use, Reasoning
+
+When browsing models in LM Studio, each model shows a list of supported capabilities. These are critical to understand for agentic coding workflows.
+
+| Capability | What It Means | Required For |
+|---|---|---|
+| **Vision** | The model can process and understand images | Multi-modal inputs, screenshot analysis |
+| **Tool Use** | The model can call external tools and functions correctly | ✅ Agentic coding workflows — **essential** |
+| **Reasoning** | The model is a "thinking model" — spends extra time reasoning before responding | Complex coding tasks, bug fixing, planning |
+
+### Recommendations for Agentic Coding
+
+- **Tool use** is non-negotiable. If your model does not support tool use, it cannot properly operate as a coding agent.
+- **Reasoning** is highly recommended. The model will spend more time thinking through what needs to be done, which leads to significantly better output for complex tasks.
+- Reasoning models tend to be larger. This is expected — use the MoE strategy (covered below) to make them manageable.
+
+---
+
+## Loading Models in LM Studio
+
+Once you've downloaded a model, go to the **Chat window** and click **"Select a model to load"**.
+
+### Always Enable Advanced Load Parameters
+
+At the bottom of the model selector dialog, enable **"Manually choose model load parameters"**. This gives you access to critical configuration options:
+
+1. **GPU Offload** — Controls how much of the model loads onto your GPU vs CPU/system RAM
+2. **Context Length** — How large of a context window the model uses
+
+---
+
+## GPU Offload and Context Length Configuration
+
+### GPU Offload
+
+```
+GPU Offload Slider: [min ──────────────────── max]
+                                               ↑
+                              Set this to MAX if model fits in VRAM
+```
+
+- **Max GPU Offload** = entire model loads onto your GPU → fastest possible inference
+- **Partial GPU Offload** = some layers go to CPU/system RAM → slower, but allows larger models
+
+> If your entire model fits in VRAM, always max out GPU offload. This gives you the most speed possible.
+
+### Context Length
+
+As you increase context length, the model's total memory footprint increases — sometimes dramatically.
+
+```
+Context Length: 5,000 tokens  → small memory increase
+Context Length: 32,000 tokens → moderate memory increase
+Context Length: MAX           → can sometimes double the model's total size
+```
+
+**Recommendations by use case:**
+
+| Use Case | Suggested Context Length |
+|---|---|
+| Basic chat | 5,000–10,000 tokens |
+| Code review / single file | 10,000–32,000 tokens |
+| Full agentic coding workflow | 32,000–128,000 tokens |
+
+Play around with the context length and watch the total estimated size in LM Studio. Find a number that keeps everything within your VRAM.
+
+---
+
+## Performance: GPU vs System RAM
+
+Here is a concrete example of the performance difference between a model fully loaded in VRAM vs one that overflows into system RAM:
+
+| Scenario | Tokens Per Second | Notes |
+|---|---|---|
+| Model fully in GPU VRAM | ~120+ tokens/sec | Fast, real-time feel |
+| Small overflow into system RAM | ~20–30 tokens/sec | ~6× slower |
+| Large overflow, model barely fits | ~1 token/sec | Painfully slow — avoid |
+
+### What Causes Overflow
+
+- Model is too large for your VRAM
+- Context length is set too high (even a properly sized model can overflow if context is maxed)
+- Running other GPU-intensive tasks (e.g., video recording) at the same time
+
+> The goal is to get your GPU memory near the top — fully utilized — but not so maxed out that as your context fills up, it starts spilling into system RAM and slowing everything down.
+
+---
+
+## Mixture of Experts (MoE) Models
+
+MoE (Mixture of Experts) is a model architecture that allows you to run a much larger model while keeping performance acceptable — even when the model doesn't fully fit in VRAM.
+
+### How MoE Works (Conceptual Overview)
+
+A standard dense model uses all its parameters for every token it generates. A MoE model is divided into "expert" sub-networks, and only a subset of those experts are active at any given time. This means:
+
+- The **active** parameters (the parts working hard right now) can stay on your fast GPU
+- The **inactive** parameters (less urgent parts) can offload to slower system RAM
+- Net result: you get a much smarter model with acceptable speed
+
+### How to Identify a MoE Model
+
+Look for a **dual parameter number** in the model name:
+
+```
+Qwen 35B-A3B     → 35 billion total params, 3 billion active params
+Mixtral 8x7B     → 8 experts × 7B params each
+DeepSeek 35x25   → first number = total, second = active
+```
+
+You'll also see this labeled on Hugging Face. In LM Studio, when you select a MoE model, you'll see an extra configuration option:
+
+### MoE-Specific LM Studio Setting
+
+**"Number of layers for which to force weights onto the CPU"**
+
+This setting pushes the less-important layers (inactive experts) onto your CPU/system RAM and keeps the important, active layers in your GPU.
+
+### MoE Configuration Strategy
+
+```
+Total layers in model:  40
+GPU offload:            Max
+CPU-forced layers:      Start at 0, increase slowly until the model fits
+
+Example sweet spot:     30 out of 40 layers on GPU, 10 pushed to CPU
+```
+
+**Step-by-step process:**
+
+1. Max out GPU offload
+2. Set your desired context length
+3. Start CPU-forced layers at `0`
+4. If the model doesn't fit, slowly increase the CPU-forced layers number
+5. Find the lowest number that allows the model to load without crashing
+
+With this strategy, a 26+ GB model can be loaded on a 16 GB VRAM GPU and still achieve ~43 tokens/second — compared to ~1 token/second if you just let it overflow without MoE-aware configuration.
+
+### MoE Performance Example
+
+| Configuration | Tokens/Sec | Description |
+|---|---|---|
+| Standard dense model, fully in GPU | ~120 | Fastest |
+| MoE model, optimized CPU offload | ~43 | Good — usable for agentic work |
+| MoE model, no optimization (full overflow) | ~1 | Unusable |
+
+---
+
+## Setting Up the LM Studio Developer Server
+
+To use LM Studio models with external programs (VS Code, terminal agents, etc.), you need to expose it as a local API server.
+
+### Enable Developer Mode
+
+1. Open LM Studio settings
+2. Navigate to **Developer** section
+3. Toggle **Developer Mode ON**
+
+The **Developer tab** will now appear in your sidebar.
+
+### Loading Models via the Developer Tab
+
+In the Developer tab you can load multiple models simultaneously — one for autocomplete (small, fast) and one for agentic tasks (larger, smarter).
+
+```
+Developer Tab → Load Model → Select model → Configure parameters → Load
+```
+
+You can load as many models as your VRAM permits. Each loaded model consumes GPU/system memory.
+
+### Server URL and OpenAI Compatibility
+
+Once models are loaded, make sure the server **Status** is set to **Running** (green checkmark). Note the server URL — it will look like:
+
+```
+http://localhost:1234
+```
+
+LM Studio exposes **OpenAI-compatible endpoints**, meaning anything that works with OpenAI's API will work with LM Studio out of the box:
+
+```
+Base URL:  http://localhost:1234/v1
+```
+
+All tools covered in this guide (Continue, GitHub Copilot, Pi) use this same URL.
+
+---
+
+## Setting Up Autocomplete in VS Code with Continue
+
+**Continue** is a VS Code extension that provides both AI autocomplete and agentic chat/edit modes. It is the primary way to use your local model inside VS Code.
+
+**Install the Continue extension** from the VS Code marketplace.
+
+### Continue Settings to Configure First
+
+Open the Continue sidebar → click the **settings gear icon** → navigate to user settings:
+
+#### Autocomplete Timeout
+
+```json
+"autocompleteTimeout": 1000
+```
+
+Set to **1000 milliseconds (1 second)**. This accounts for slight delays between your LM Studio model finishing generation and VS Code receiving it. It doesn't actually delay autocomplete — it just makes sure the response isn't dropped.
+
+#### Debounce
+
+```json
+"debounce": 100
+```
+
+This controls how long Continue waits after you stop typing before triggering autocomplete. 100ms is a reasonable default. Lower = more aggressive autocomplete; higher = more relaxed.
+
+#### Tools Section (For Agentic Mode)
+
+In the **Tools** section of Continue settings, configure each tool's permission level:
+
+| Tool | Recommended Setting | Reason |
+|---|---|---|
+| Read file | Automatic | Agent needs to read code freely |
+| Create file | Automatic | Agent needs to create files |
+| Edit file | Automatic | Agent needs to make edits |
+| Run terminal command | Ask first | Safety — review before execution |
+| Fetch URL | Ask first | Review before network calls |
+| Create rules | Excluded | Not needed |
+| Request rule | Excluded | Not needed |
+
+> By default, "edit file" and "create file" are set to "ask first." For proper agentic workflows, change these to **Automatic** — otherwise the agent will constantly ask for permission and break its flow.
+
+---
+
+## Configuring the Continue Extension (YAML)
+
+Continue is configured through a **YAML configuration file**. To open it: click the settings icon → click **"Connect"** on any provider → it opens your config file.
+
+### Full Configuration Structure
+
+```yaml
+# Continue Configuration File
+
+models:
+  # ─── AUTOCOMPLETE MODEL ───────────────────────────────────────────
+  - name: "autocomplete"            # Display name — call it whatever you want
+    provider: lmstudio              # Always lmstudio for local models
+    model: "qwen2.5-coder-1.5b-instruct"  # Exact model ID from LM Studio (use copy button)
+    apiBase: "http://localhost:1234/v1"    # Your LM Studio server URL + /v1
+    roles:
+      - autocomplete                # This tells Continue this model handles autocomplete
+
+  # ─── AGENTIC / CHAT MODEL ─────────────────────────────────────────
+  - name: "Qwen 3.6 Agent"
+    provider: lmstudio
+    model: "qwen2.5-coder-32b-instruct"   # Exact model ID from LM Studio
+    apiBase: "http://localhost:1234/v1"
+    capabilities:
+      - tool_use                    # Required for agentic mode
+      - image_input                 # Optional: only if model supports vision
+    roles:
+      - chat
+      - edit
+```
+
+### How to Get the Exact Model ID
+
+In LM Studio → Developer tab → find your loaded model → click the **copy icon** next to the model name. Paste this directly into the `model:` field. Do not modify it.
+
+### How to Get the API Base URL
+
+In LM Studio → Developer tab → look for the server URL at the top. Add `/v1` to the end:
+
+```
+LM Studio shows:  http://localhost:1234
+Use in config:    http://localhost:1234/v1
+```
+
+### Verifying Autocomplete is Working
+
+1. Open a code file in VS Code
+2. Start typing some code
+3. If autocomplete doesn't appear automatically, press `Ctrl + Alt + Space` to force it
+4. To debug: open LM Studio → Developer tab → check the **Developer Logs**
+
+In the developer logs, you'll see each autocomplete request with timing:
+
+```
+Total time: 259ms   ← Good, well under 1000ms timeout
+Total time: 3200ms  ← Bad, exceeds timeout — need a smaller model
+```
+
+> If autocomplete is timing out, your model is too large for quick inference. Switch to a smaller model for autocomplete (1B–3B parameter range is ideal).
+
+---
+
+## Setting Up Chat and Agentic Mode in Continue
+
+Once your YAML config has both models defined (autocomplete + agent), go back to the Continue sidebar:
+
+- The **autocomplete model** (role: `autocomplete`) will NOT appear in the chat model list — it only handles autocomplete
+- The **agent model** (role: `chat`, `edit`) will appear in the dropdown
+
+### Using Continue Chat vs Agent Mode
+
+| Mode | Capabilities | Use For |
+|---|---|---|
+| **Chat** | Conversation only, no tool access | Questions, explanations, code review |
+| **Agent** | Full tool access (read/write files, run commands) | Building features, fixing bugs, creating files |
+
+### Example: Agent Creating a File
+
+In Agent mode, you can give commands like:
+
+```
+Create a file called test.ts that just has console.log("test") in it
+```
+
+The agent will:
+1. Think about the task
+2. Call the "create file" tool
+3. Write the file to your project
+4. Report back with what it did
+
+You can verify all API calls in real-time by watching the LM Studio Developer Logs while Continue is running.
+
+---
+
+## Setting Up GitHub Copilot with a Local Model
+
+> **Note:** This feature requires **VS Code Insiders** (the beta version of VS Code). It may be available in the stable version by the time you read this.
+
+> **Important limitation:** Even with a fully local model, using GitHub Copilot integration still communicates with GitHub's servers for authentication and routing. It is **not fully offline**.
+
+### Steps to Configure
+
+1. Install **VS Code Insiders**
+2. Open the **Copilot chat panel** (you do not need a paid Copilot subscription for this)
+3. Click the **model dropdown** → click the **gear icon**
+4. Click **"Add Models"** → choose **"OpenAI Compatible"**
+5. Give it a name (e.g., `LM Studio`)
+6. Enter any value for API key (it's ignored — there is no real API key for a local model)
+
+### Configuring Model Details
+
+After adding the provider, a configuration section appears. Fill in:
+
+```jsonc
+{
+  "name": "LM Studio",
+  "vendor": "openai",  // auto-populated
+  "apiKey": "key",     // any value, ignored
+  "models": [
+    {
+      "id": "qwen2.5-coder-32b-instruct",  // exact ID from LM Studio
+      "name": "Qwen 3.6",                   // human-readable name
+      "url": "http://localhost:1234/v1",     // LM Studio server URL
+      "capabilities": {
+        "tools": true,        // set to true if model supports tool use
+        "vision": true        // set to true if model supports vision
+      },
+      "maxInputTokens": 32768,   // copy from LM Studio context length setting
+      "maxOutputTokens": 8192
+    }
+  ]
+}
+```
+
+### Getting maxInputTokens
+
+In LM Studio → Developer tab → click on your loaded model → look at the **context length** value → copy that number exactly into `maxInputTokens`.
+
+### Applying Changes
+
+After editing the model config file, you must reload VS Code for changes to take effect:
+
+```
+Ctrl + Shift + P → Developer: Reload Window
+```
+
+After reloading, open the Copilot chat → click model dropdown → select **"Other Models"** → your new model appears at the bottom.
+
+---
+
+## Setting Up Pi (Terminal-Based Agentic Coding)
+
+**Pi** is a terminal-based coding agent that runs locally in your command line. It works well for agentic coding tasks and doesn't have the browser/GitHub dependency that the VS Code Copilot integration has.
+
+**Website:** [https://pi.dev/](https://pi.dev/)
+
+### Installation
+
+Go to [https://pi.dev/](https://pi.dev/), scroll down, and copy the install command. Run it in your terminal. Then simply run:
+
+```bash
+pi
+```
+
+This opens the Pi interactive interface.
+
+### Selecting a Model
+
+Inside Pi, type:
+
+```
+/model
+```
+
+This opens the model selection menu. On a fresh install, no models will be listed. You need to configure your models file first.
+
+---
+
+## Configuring Pi Models File
+
+Pi stores its model configuration in a file on your system. The location varies by OS — check the [Pi documentation](https://pi.dev/) for the exact path for your operating system.
+
+Open the models file in VS Code:
+
+```bash
+# Find and open the models.yaml file (path varies by OS — see Pi docs)
+code ~/.pi/models.yaml  # example path — check Pi docs for yours
+```
+
+### Full Models File Configuration
+
+```yaml
+lmstudio:                        # Key = name you give this provider
+  provider: lmstudio
+  baseUrl: "http://localhost:1234/v1"   # LM Studio server URL with /v1
+  api: openai-completions               # Use this for agent-based mode
+  apiKey: "any-value"                   # Ignored for local models
+
+  models:
+    # ─── PRIMARY AGENTIC MODEL ─────────────────────────────────────
+    - id: "qwen2.5-coder-32b-instruct"  # Exact ID from LM Studio
+      contextWindow: 32768               # Copy from LM Studio context setting
+      reasoning: true                    # Set true if model is a reasoning model
+      input:
+        - text
+        - image                          # Only include if model supports vision
+
+    # ─── SECONDARY / FALLBACK MODEL ────────────────────────────────
+    - id: "qwen2.5-coder-7b-instruct"
+      contextWindow: 16384
+      reasoning: false
+
+    # ─── SMALL UTILITY MODEL (fast tasks) ──────────────────────────
+    - id: "qwen2.5-coder-1.5b-instruct"
+      contextWindow: 8192
+      # No reasoning or image — small model, just for quick tasks
+```
+
+### Configuration Field Reference
+
+| Field | Description | Where to Get It |
+|---|---|---|
+| `provider` | Always `lmstudio` for local | Fixed value |
+| `baseUrl` | LM Studio server URL | LM Studio Developer tab |
+| `api` | Always `openai-completions` for agent mode | Fixed value |
+| `apiKey` | Any string — ignored | Make up anything |
+| `id` | Exact model identifier | Copy from LM Studio model name |
+| `contextWindow` | Max tokens the model can handle | Copy from LM Studio context length field |
+| `reasoning` | Whether model thinks before responding | Check model capabilities in LM Studio |
+| `input` | Supported input types | Check model capabilities (`text`, `image`) |
+
+### Running Pi on Your Codebase
+
+Once configured, open Pi in your project directory and run commands like:
+
+```
+describe this codebase
+```
+
+Pi will:
+1. Read through your files
+2. Use the configured LM Studio model
+3. Provide a full analysis
+
+Pi shows your context window usage and token counts in real-time at the bottom of the interface.
+
+---
+
+## Performance Comparison: Local vs Cloud Models
+
+The following comparisons were done on a Windows PC with a 16 GB VRAM GPU (video-editing focused hardware, not AI-optimized).
+
+### Vibe-Coding Comparison (New App from Scratch)
+
+**Task:** Build a Sudoku app with pencil marking, easy/medium/hard difficulty, and a solution checker — single one-shot prompt.
+
+| Model | Time to Complete | Result Quality |
+|---|---|---|
+| Qwen 3.6 (local, 27B Q4) | ~9 minutes | Fully functional — pencil marking, error checking, hints |
+| Claude Sonnet 4.6 (cloud) | ~9 minutes | Fully functional — added center pencil marking (slightly more complete) |
+
+> Both models produced comparable, working applications from the same prompt. Time was identical in this case because the local model generated faster but the cloud model spent more time in thinking/reasoning.
+
+### Bug Fixing Comparison (Existing Codebase)
+
+**Task:** Fix an audio playback bug in a large video editor codebase. Both models received the exact same prompt.
+
+| Model | Time to Fix | Code Correctness |
+|---|---|---|
+| Claude Sonnet 4.6 (cloud) | ~45 seconds | Correct fix |
+| Qwen 3.6 (local, 27B Q4) | ~2.5 minutes | Identical fix — same code change |
+
+> The local model took longer because it spent more time reading through the large codebase. Both models identified and fixed the bug in exactly the same way. The code diff was literally identical.
+
+### Key Takeaway
+
+For simple to medium tasks, **local models are entirely comparable to cloud models in output quality**. The main tradeoff is speed on larger codebases, where reading through many files takes longer on slower local inference.
+
+---
+
+## Hardware Recommendations and Cost Considerations
+
+### Hardware by Use Case
+
+| Hardware Profile | What You Can Run | Expected Performance |
+|---|---|---|
+| Any GPU (even old ones) | Models up to ~1 GB VRAM | Basic chat and small autocomplete |
+| 8 GB VRAM | Q4 models up to ~7B parameters | Good autocomplete, basic agentic work |
+| 16 GB VRAM | Q4 models up to ~13B; MoE tricks for ~27–35B | Strong agentic coding with MoE |
+| 24 GB VRAM | Q4 models up to ~20B comfortably | Excellent for most coding tasks |
+| Mac with 32–64 GB unified memory | Models up to ~30–60B at Q4 | Exceptional local AI performance |
+
+> You don't need super powerful hardware. Even older, low-end GPUs can run small but capable models. The key is choosing the right model size for your hardware.
+
+### The Cost Argument for Local AI
+
+If you are currently paying for a cloud AI subscription:
+
+```
+Claude Pro:  $20/month
+Claude Max:  $100–$200/month
+
+2–3 months of Max subscription savings
+= budget for dedicated AI-focused GPU hardware
+= better specs than video-editing hardware used in this tutorial
+= runs locally, privately, forever with no monthly costs
+```
+
+AI-focused hardware (high VRAM GPUs, or Apple Silicon Macs) is often significantly more cost-efficient for AI workloads than general-purpose hardware.
+
+---
+
+## Quick Reference Tables
+
+### Model Size vs Hardware
+
+| Model Size | Min VRAM | Recommended VRAM |
+|---|---|---|
+| 1B parameters | 1 GB | 2 GB |
+| 3B parameters | 2–3 GB | 4 GB |
+| 7B–9B parameters | 4–6 GB | 8 GB |
+| 13B parameters | 7–8 GB | 12 GB |
+| 27B–35B parameters (MoE) | 16 GB | 24 GB |
+| 70B+ parameters | 40+ GB | 80 GB+ |
+
+### Tool Comparison: Continue vs Copilot vs Pi
+
+| Feature | Continue (VS Code) | GitHub Copilot + Local | Pi (Terminal) |
+|---|---|---|---|
+| Autocomplete | ✅ Yes | ❌ No | ❌ No |
+| Chat mode | ✅ Yes | ✅ Yes | ✅ Yes |
+| Agentic mode | ✅ Yes (sometimes buggy) | ✅ Yes (better experience) | ✅ Yes (best for terminal) |
+| Fully offline | ✅ Yes | ❌ No (needs GitHub auth) | ✅ Yes |
+| Setup complexity | Medium | Medium | Low |
+| VS Code required | ✅ Yes | ✅ Yes (Insiders) | ❌ No |
+
+### LM Studio Configuration Cheat Sheet
+
+| Setting | What It Does | Recommendation |
+|---|---|---|
+| GPU Offload | % of model layers loaded to GPU | Max out if model fits |
+| Context Length | Token window size | 5K–10K for chat; 32K+ for agentic |
+| CPU-forced layers (MoE only) | Push inactive expert layers to CPU | Start at 0, increase until model loads |
+| Developer Mode | Enables API server | Always on for external tool use |
+| Server Status | Running/stopped | Must be "Running" |
+
+### Continue YAML Roles Reference
+
+| Role Value | Effect |
+|---|---|
+| `autocomplete` | Model handles code autocomplete in editor |
+| `chat` | Model appears in chat dropdown |
+| `edit` | Model handles inline edits / diff application |
+
+---
+
+## Summary
+
+Setting up a fully local AI coding workflow involves four layers:
+
+1. **Hardware understanding** — Know your VRAM, know your system RAM, know the difference between Mac unified memory and dedicated GPU setups.
+
+2. **Model selection** — Choose models with the right parameter count for your hardware. Use Q4 quantization as your default. Prioritize tool use and reasoning capabilities for agentic work. Use MoE models when you need more intelligence without sacrificing all performance.
+
+3. **LM Studio configuration** — Max out GPU offload when possible. Tune context length carefully. Use the developer server to expose an OpenAI-compatible API at `http://localhost:1234/v1`.
+
+4. **Tool integration** — Use Continue for autocomplete + agentic VS Code work. Use GitHub Copilot integration for a better chat/agent experience (with internet). Use Pi for a clean, terminal-based fully offline agentic workflow.
+
+The skills you learn here apply regardless of which specific models exist when you read this. New models come out every month, but the underlying concepts — parameters, quantization, VRAM, context, MoE, tool use — remain constant. You now have the foundation to evaluate and configure any future model for your exact hardware.
+
+---
+
+*Source: WebDev Simplified — "The Best Local Agentic Coding Workflow: Complete Guide"*
+*References: [LM Studio](https://lmstudio.ai/) · [Hugging Face](https://huggingface.co/) · [Pi Coding Agent](https://pi.dev/)*

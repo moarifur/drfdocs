@@ -113,6 +113,12 @@ const config = {
             label: 'Deployment',
           },
           {
+            type: 'docSidebar',
+            sidebarId: 'agentSidebar',
+            position: 'left',
+            label: 'Agents',
+          },
+          {
             href: 'https://github.com/moarifur',
             label: 'GitHub',
             position: 'right',
