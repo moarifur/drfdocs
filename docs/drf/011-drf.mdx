@@ -12,7 +12,15 @@ sidebar_position: 1
 
 ## What Is DRF?
 
-**Django REST Framework (DRF)** is a powerful toolkit for building Web APIs with Django. It handles serialization, validation, authentication, and browsable API interfaces.
+**Django REST Framework (DRF)** is a powerful toolkit for building Web APIs with Django. It handles:
+
+> Serialization
+
+> Validation
+
+> Authentication and
+
+> Browsable API interfaces
 
 ---
 
@@ -149,7 +157,7 @@ But when a frontend app or mobile client talks to your API, it speaks JSON:
 
 These two worlds don't speak the same language. Python objects can't be sent over HTTP directly, and raw JSON can't be saved to a database without first being validated and converted. The serializer is the bridge between them.
 
-Think of it as a **customs officer at an airport**: every piece of data passing through gets checked, validated, and formatted before it can enter or exit your system.
+> Think of it as a **customs officer at an airport**: every piece of data passing through gets checked, validated, and formatted before it can enter or exit your system.
 
 ## The Big Picture
 
@@ -161,10 +169,14 @@ Database  ←→  Django Models  ←→  Serializers  ←→  JSON  ←→  Clie
 
 They handle four responsibilities at once:
 
-- **Translation** — converting between Python objects and JSON-compatible data
-- **Validation** — ensuring incoming data is correct and complete
-- **Security** — controlling exactly which fields are exposed
-- **Transformation** — shaping data into the format your API contract requires
+> `Translation` — converting between Python objects and JSON-compatible data
+
+> `Validation` — ensuring incoming data is correct and complete
+
+> `Security` — controlling exactly which fields are exposed
+
+> `Transformation` — shaping data into the format your API contract requires
+
 ## Bidirectional Conversion
 
 Serializers work in both directions. Understanding each direction is key.

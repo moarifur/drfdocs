@@ -8,13 +8,39 @@ sidebar_position: 2
 ---
 
 # Serializers
+> Implement a `GET` endpoint using DRF serializers and function-based views.
 ---
 
-## Goal
+## Step 0: Proper DRF API Architecture
 
-Implement a `GET` endpoint using DRF serializers and function-based views.
+Since you're learning/building `APIs` with Django REST Framework, keep ONLY the `DRF` structure. You no longer need:
 
----
+
+```
+watchlist_app/views.py
+watchlist_app/urls.py
+```
+
+
+### `Recommended Clean Structure`
+
+```
+watchmate/
+│
+├── watchmate/
+│   ├── settings.py
+│   └── urls.py
+│
+├── watchlist_app/
+│   ├── models.py
+│   ├── admin.py
+│   ├── migrations/
+│   │
+│   └── api/
+│       ├── serializers.py
+│       ├── views.py
+│       └── urls.py
+```
 
 ## Step 1: Create the Serializer
 
@@ -57,7 +83,7 @@ def movie_list(request):
 
 @api_view(['GET'])
 def movie_detail(request, pk):
-    movie = Movie.objects.get(pk=pk)
+    movie = get_object_or_404(Movie, pk=pk)
     serializer = MovieSerializer(movie)              # single object, no many=True
     return Response(serializer.data)
 ```
