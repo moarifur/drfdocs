@@ -1,0 +1,341 @@
+---
+title: Graphic Design Fundamentals (Adobe Illustrator)
+description: Reference notes from the Graphic Design basics class — Illustrator interface, tools, color modes, and workflow.
+sidebar_position: 4
+tags: [graphic-design, illustrator, photoshop, freelancing]
+---
+
+# Graphic Design Fundamentals
+
+> Class notes — 26 July 2026. Covers the basics of Adobe Illustrator (and how it differs from Photoshop), artboard setup, core tools, color modes, the Pen tool, layer arrangement, and clipping masks.
+
+## 1. Basic Discussions
+
+Before jumping into software, a few points on the freelancing/client side of graphic design work:
+
+- **Client communication** — how you talk to and manage clients matters as much as design skill.
+- **Negotiation for freelancing** — this is a *focus point*. Rates, scope, and revisions should be agreed on up front.
+- **GDF (Graphic Design Fundamentals) for freelancing** — the basics taught here are meant to directly support freelance work, not just theory.
+- Rule of thumb for structuring lessons: *"Today's class will be on basics."* Start every new topic at the fundamentals before going advanced.
+
+---
+
+## 2. Software Overview: Photoshop vs. Illustrator
+
+| | **Adobe Photoshop** | **Adobe Illustrator** |
+|---|---|---|
+| Type | **Pixel / Raster** based | **Vector** based |
+| Resolution | Fixed — quality drops when scaled up | **100% resolution** at any size (mathematical/vector paths) |
+| Best for | Normal social media posts, images **without net (offset) printing** | **High-resolution, print-ready work** |
+| Typical output | Web / social graphics | Print media, **logos** (Illustrator is the standard tool for logo design) |
+| Underlying logic | Grid of colored pixels | **Mathematical terms/paths** define shapes |
+
+**Key takeaway:** If the output needs to be printed physically (flyers, banners, business cards, logos) → use **Illustrator**. If it's a quick web/social graphic → **Photoshop** is fine.
+
+---
+
+## 3. Getting Started in Illustrator (AI)
+
+**AI = Adobe Illustrator**
+
+### 3.1 The Artboard
+
+The **Artboard** is your **design area** — the digital equivalent of a physical print sheet.
+
+When creating a new document (`File > New`), Illustrator organizes templates into categories:
+
+- Recent
+- Saved
+- Web
+- Film & Video
+- Print / Illustrator (art & illustration presets)
+
+### 3.2 Document Setup — Flyer Example
+
+A standard flyer setup:
+
+| Property | Value |
+|---|---|
+| Width | 8.5 in |
+| Height | 11 in |
+| Orientation | Landscape / Portrait (Vertical) |
+| **Bleed** | 0.125 in (**not always mentioned by clients — set it anyway**) |
+
+**Bleed** = the extra margin added around the final cutting point so that colors/images don't leave a white sliver after trimming. It marks the **print-ready file** boundary and appears with **crop/link marks** at the corners.
+
+```
+Final cutting point ──► Print Ready File
+0.125 inches           ──► standard bleed value
+Link/crop marks        ──► show trim guides on export
+```
+
+### 3.3 Document Setup Path
+
+```
+File
+├── New
+└── Document Setup
+    └── Edit (click here to adjust — you can change bleed/size settings
+         even after the document is already created)
+```
+
+---
+
+## 4. The Illustrator Interface
+
+### 4.1 Layout Overview
+
+- **Menu Bar** → `File`, `Edit`, ... (top-level commands)
+- **Options Bar** → contextual settings for the currently selected tool
+- **Tools Bar** → the toolbox (Selection, Pen, Shape tools, etc.)
+- **Window** → panels; each has its own **Tools Detail** (e.g., Stroke panel, Color panel)
+
+### 4.2 Common Artboard/Output Types
+
+| Design Type | Purpose |
+|---|---|
+| Leaflet / Flyer | Print Ready |
+| Facebook Post | Social Media Post |
+| Video Ad | Publish (digital) |
+
+---
+
+## 5. Color Modes & Resolution
+
+### 5.1 Color Modes
+
+```
+Colour Mode
+├── CMYK ─────────────► Print Ready File
+│    ├── Cyan
+│    ├── Magenta
+│    ├── Yellow
+│    └── Black
+│
+└── RGB ──────────────► Social Media Post
+     ├── Red
+     ├── Green
+     └── Blue
+```
+
+- **CMYK** (Cyan, Magenta, Yellow, Black) is the **print** color mode — always use this for anything going to a printer.
+- **RGB** (Red, Green, Blue) is the **screen** color mode — use this for social media, web, and digital-only output.
+
+### 5.2 Raster Effects (Resolution)
+
+| Setting | Value | Use case |
+|---|---|---|
+| **High** | 300 ppi | Print Ready File |
+| **Screen** | 72 ppi | Social Media Post |
+
+> Note: The Screen (72 ppi) setting shown in the Effects menu, when extended/scaled, tends to render reliably mainly on **iPhone** — behavior can differ on other phones/screens, so double-check social assets across devices.
+
+### 5.3 Flyers Are Dual-Purpose
+
+A flyer is one of the few asset types commonly reused for **both** print and social media posting — just export twice, once in CMYK/300ppi and once in RGB/72ppi.
+
+*— Artboard setup section ends here —*
+
+---
+
+## 6. Selection Tools
+
+Illustrator's selection tools sit at the top of the toolbar and are used constantly.
+
+### 6.1 Selection Tool — `V`
+
+- Selects and **moves** whole objects/groups.
+- Clicking empty space (without hitting an object) **deselects** — "without selecting" nothing happens.
+
+### 6.2 Direct Selection Tool — `A`
+
+- Lets you select and edit **individual anchor points and path segments** rather than the whole object.
+- Use it to reshape a path without moving the entire object.
+
+### 6.3 Magic Wand Tool — `Y`
+
+- Click on a color to select **all areas of the same/similar color**.
+
+### 6.4 Lasso Tool — `Q`
+
+- **Free-hand selection** — drag around anchor points/objects to select them irregularly.
+
+### 6.5 Single vs. Multi Select
+
+| Action | Result |
+|---|---|
+| Click | Select one object |
+| `Shift + Click` | Add to current selection |
+| Drag a marquee | Select everything inside the drag area |
+
+---
+
+## 7. Navigation & Object Manipulation
+
+### 7.1 Zoom & Pan
+
+| Shortcut | Action |
+|---|---|
+| `Alt + Scroll` (up/down) | Zoom in / out |
+| `Space bar` + drag | Move / pan the canvas |
+
+### 7.2 Duplicating Objects
+
+| Action | Result |
+|---|---|
+| `Alt` + drag | Duplicate (copy) the object as you drag |
+| `Ctrl + D` | Repeat the last transform (great for repeating a copy at a regular offset) |
+| `Alt + Shift` + drag | Duplicate while constraining movement to a straight line/axis |
+| `Ctrl + D` after Alt+Shift copy | Repeats that same constrained copy — useful for evenly spaced ("reversal") copies |
+
+### 7.3 Handle Point Control
+
+- Anchor point handles (the curve-control lines) are edited with the **Direct Selection Tool** (`A`).
+
+---
+
+## 8. Shape Tools
+
+- **Rectangle Tool**
+- **Ellipse Tool**
+
+Use these for simple geometric shapes — you don't need the Pen Tool for basic rectangles/circles/etc.
+
+### 8.1 Layer / Stacking Order
+
+| Action | Shortcut |
+|---|---|
+| Bring Forward | `Ctrl + C`* then `Ctrl + F` |
+| Bring Backward | `Ctrl + C`* then `Ctrl + B` |
+
+*\* Copy the object first (or select it), then apply the forward/backward command to change its stacking position relative to other objects.*
+
+---
+
+## 9. Pen Tool
+
+The Pen Tool is Illustrator's core drawing tool for creating custom vector paths.
+
+### 9.1 Basics
+
+- **Click** to create an **anchor point**.
+- **Click + drag** to create an anchor point **with handles** — the handles control the curve of the path.
+- A straight **click** (no drag) makes a straight-line anchor point; **click-and-drag** makes a curved one.
+- Use the **Direct Selection Tool** to click and adjust an anchor point or its handles after the fact.
+
+### 9.2 Building Shapes with the Pen Tool
+
+```
+Pen Tool
+├── Path Line — draw the outline
+├── Stroke [Border] — the line style around the path
+│    └── used when you want to turn the path into a closed Shape
+├── Fill Colour — the color inside a closed shape
+└── Stroke Colour — the color of the border/line itself
+```
+
+### 9.3 Stroke Panel
+
+- Open via `Window > Stroke`.
+- Controls the line's **weight, cap, corner style, and dash pattern** — this is where you design how the border/stroke looks.
+
+### 9.4 Dashed Lines
+
+- In the Stroke panel, check **Dashed Line** and set the **dash** and **gap** values.
+- You can also apply a dashed stroke directly to a shape's outline (not just a plain path).
+
+### 9.5 Opacity
+
+- Basic color/stroke opacity ranges from **0–100%** — found in the `Window > Transparency` panel or the top-right Opacity field.
+
+### 9.6 Free-Hand Drawing Alternative
+
+If you don't want the precision (and learning curve) of the Pen Tool for freehand strokes:
+
+- **Pencil Tool** — draws a freehand path that follows your cursor movement directly, as an alternative to placing anchor points manually with the Pen Tool.
+
+---
+
+## 10. Clipping Masks
+
+A **Clipping Mask** uses the shape of one object to "crop" another object/image so only the overlapping part is visible.
+
+### 10.1 Steps
+
+1. Place both objects (the image/artwork and the shape you want to crop with) so they overlap.
+2. **Select both objects** — the shape you want to use as the mask must be **selected on top** (in front) of the object being masked.
+3. Bring the masking shape to the front if it isn't already:
+   - `Object > Arrange > Bring to Front`
+   - (or Bring Backward if you need to reorder the other way)
+4. With both objects selected, apply:
+   - `Object > Clipping Mask > Make` (`Ctrl + Shift`)
+5. The **top shape's outline becomes the visible window** — everything outside that shape is hidden (not deleted).
+
+### 10.2 Masking vs. Clipping
+
+- **Clipping Mask**: uses a **vector shape** as the mask — only the shape's outline matters, and it can be resized/edited later along with the masked content.
+- **Masking** (Opacity Mask): typically uses **grayscale values** (black = hidden, white = visible) for a softer, non-vector-based reveal/hide effect — useful for gradient fades rather than hard-edged crops.
+
+> Rule of thumb: use a **Clipping Mask** when you need a hard-edged shape crop (e.g., putting a photo inside a circle or custom logo shape). Use an **Opacity Mask** when you need a soft or gradient fade.
+
+---
+
+## 11. Freelancing & AI-Assisted Workflow
+
+- **Creation-making using ChatGPT** — AI tools can help brainstorm concepts, copy, and design briefs before you start designing.
+- **Freelancing-based creation-making (Advanced)** — once basics are solid, the same skills apply directly to freelance client work — the difference is mainly in communication, negotiation, and turnaround expectations.
+- Recommended AI tools for **question-making / practice material generation**: **ChatGPT**, **Gemini**, **Claude AI**.
+
+---
+
+## 12. Course Topics Checklist
+
+Topics expected to be covered across the course (some may appear in written exam form):
+
+- [ ] Graphic Design Principles
+- [ ] Freelancing Communication
+- [ ] Design Colour Theory
+- [ ] Tools Definition / Software
+- [ ] Freelancing (practical application)
+
+### Exam / Assessment Note
+
+- Pass marks: **20/25** → **80%**
+- Minimum practical benchmark noted: **20 (or 19) marks** to pass.
+
+---
+
+## Quick Reference: Shortcuts Cheat Sheet
+
+| Shortcut | Action |
+|---|---|
+| `V` | Selection Tool |
+| `A` | Direct Selection Tool |
+| `Y` | Magic Wand Tool |
+| `Q` | Lasso Tool |
+| `Alt + Scroll` | Zoom in/out |
+| `Space` + drag | Pan canvas |
+| `Alt` + drag | Duplicate object |
+| `Ctrl + D` | Repeat last transform/copy |
+| `Alt + Shift` + drag | Constrained-axis duplicate |
+| `Ctrl + C`, `Ctrl + F` | Bring Forward |
+| `Ctrl + C`, `Ctrl + B` | Bring Backward |
+| `Ctrl + Shift` (+ Make) | Create Clipping Mask |
+
+---
+
+## Quick Reference: When to Use What
+
+| Goal | Tool / Setting |
+|---|---|
+| Move a whole object | Selection Tool (`V`) |
+| Edit a single anchor point | Direct Selection Tool (`A`) |
+| Select by color | Magic Wand (`Y`) |
+| Freehand selection | Lasso (`Q`) |
+| Draw precise custom shapes | Pen Tool |
+| Draw freehand strokes | Pencil Tool |
+| Basic geometric shapes | Rectangle / Ellipse Tool |
+| Print-ready output | CMYK, 300 ppi, + bleed |
+| Social media output | RGB, 72 ppi |
+| Hard-edged photo crop into a shape | Clipping Mask |
+| Soft/gradient fade | Opacity Mask |
